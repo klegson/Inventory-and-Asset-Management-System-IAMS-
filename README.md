@@ -57,26 +57,24 @@ Ensure you have the following installed:
 * [MySQL](https://www.mysql.com/) (or XAMPP/Laragon)
 
 ### 2. Clone the Repository
-```bash
 git clone [https://github.com/yourusername/your-repo-name.git](https://github.com/yourusername/your-repo-name.git)
 cd your-repo-name
 
 
-3. Install Dependencies
+### 3. Install Dependencies
 Install the required PHP and Node packages:
 composer install
 npm install
 npm run build
 
 
-4. Environment Configuration
+### 4. Environment Configuration
 Copy the example environment file and generate a new application key:
 cp .env.example .env
 php artisan key:generate
 
 
-Open the .env file and configure your database settings:
-
+### Open the .env file and configure your database settings:
 Code snippet
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -86,22 +84,22 @@ DB_USERNAME=root
 DB_PASSWORD=your_password
 
 
-5. Database Migration & Storage Link
+### 5. Database Migration & Storage Link
 Run the migrations to create the necessary tables. (If you have seeders for default users/data, append --seed)
 php artisan migrate
 
 
-CRITICAL STEP: Create the symbolic link to ensure uploaded images (User avatars, Supply photos, Asset photos) are publicly accessible:
+###  CRITICAL STEP: Create the symbolic link to ensure uploaded images (User avatars, Supply photos, Asset photos) are publicly accessible:
 php artisan storage:link
 
 
-6. Run the Application
+### 6. Run the Application
 Start the Laravel development server:
 php artisan serve
 
 
 
-Key Directory Structure Highlights
+### Key Directory Structure Highlights
 app/Http/Controllers/ - Contains core logic (e.g., GlobalSearchController.php, BarcodeController.php).
 
 app/Http/Controllers/Admin/ - Admin-exclusive logic with elevated privileges.
