@@ -5,36 +5,32 @@ namespace App\Http\Controllers\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class ProfileController extends Controller
 {
-    public function index()
-    {
-        $user = Auth::user();
-        return view('user.profile', compact('user'));
-    }
-
     public function update(Request $request)
     {
         $user = Auth::user();
 
         $request->validate([
             'firstname' => 'required|string|max:255',
-            'lastname' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
+            'lastname'  => 'required|string|max:255',
+            'email'     => 'required|email|unique:users,email,' . $user->id,
+            'password'  => 'nullable|min:6',
+            'image'     => 'nullable|image|mimes:jpeg,png,jpg|max:2048'
         ]);
 
-        $data = [
-            'firstname' => $request->firstname,
-            'lastname' => $request->lastname,
-            'designation' => $request->designation, // Assuming 'role/position' input maps to designation
-            'email' => $request->email,
-            'bio' => $request->bio,
-            'theme_color' => $request->theme_color,
-        ];
+        $user->firstname = $request->firstname;
+        $user->lastname = $request->lastname;
+        $user->email = $request->email;
+        
+        // If the user typed a new password, hash it and save it
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->password);
+        }
 
-        // Handle Image Upload
+        // Handle Avatar Image Upload
         if ($request->hasFile('image')) {
             // Delete old image if it exists
             if ($user->image && file_exists(public_path('uploads/users/' . $user->image))) {
@@ -43,11 +39,12 @@ class ProfileController extends Controller
             
             $imageName = time() . '.' . $request->image->extension();
             $request->image->move(public_path('uploads/users'), $imageName);
-            $data['image'] = $imageName;
+            $user->image = $imageName;
         }
 
-        $user->update($data);
+        $user->save();
 
-        return redirect()->back()->with('msg', 'Profile updated successfully!');
+        // Redirects back to whatever page the user was on
+        return redirect()->back()->with('profile_success', 'Profile updated successfully!');
     }
 }

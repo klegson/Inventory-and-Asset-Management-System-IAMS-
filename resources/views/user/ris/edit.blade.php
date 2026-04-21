@@ -16,6 +16,7 @@
 </head>
 <body>
 
+    @include('layouts.user_header')
     @include('layouts.user_sidebar')
 
 <div class="main-content">

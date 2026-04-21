@@ -94,7 +94,7 @@
                         <tr>
                             <td class="fw-bold">{{ $row->ris_no }}</td>
                             <td>{{ $row->sig_requested_by ?: 'No Name Provided' }}</td>
-                            <td>{{ $row->division }} / {{ $row->office }}</td>
+                            <td>{{ $row->division }} <br>  <span class="badge text-white" style="background-color: #101954;">{{ $row->office }}</span></td>
                             <td>{{ \Carbon\Carbon::parse($row->created_at)->format('M d, Y') }}</td>
                             <td>
                                 <span class="badge rounded-pill {{ $badgeClass }}">

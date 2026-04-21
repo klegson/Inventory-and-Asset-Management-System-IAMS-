@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ICS Form - DepEd ROV</title>
+    <title>Equipment Request Form - DepEd ROV</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -180,7 +180,7 @@
                 width: 100%;
                 color: black;
                 font-family: 'Times New Roman', Times, serif;
-                font-size: 10.5pt; /* Slightly reduced base font to save space */
+                font-size: 10.5pt;
                 display: block;
             }
 
@@ -204,6 +204,7 @@
 </head>
 <body>
 
+    @include('layouts.user_header')
     @include('layouts.user_sidebar')
 
     <div class="main-content">
@@ -218,14 +219,14 @@
             
             <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h3 class="fw-bold m-0" style="color: var(--deped-blue);">INVENTORY CUSTODIAN SLIP</h3>
+                    <h3 class="fw-bold m-0" id="form-main-title" style="color: var(--deped-blue);">INVENTORY CUSTODIAN SLIP</h3>
                     <p class="text-muted small">Appendix 63 - Government Accounting Manual</p>
                 </div>
                 <div class="no-print">
                     <button type="button" class="btn btn-print me-2 shadow-sm" onclick="prepareAndPrint()">
                         <i class="fa-solid fa-print me-1"></i> Print PDF
                     </button>
-                    <button type="submit" class="btn btn-submit shadow-sm" onclick="return confirm('Submit this ICS request?')">
+                    <button type="submit" class="btn btn-submit shadow-sm" onclick="return confirm('Submit this request?')">
                         <i class="fa-solid fa-paper-plane me-1"></i> Submit Request
                     </button>
                 </div>
@@ -261,8 +262,9 @@
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label>ICS Number</label>
-                        <input type="text" name="ics_no" id="ics_no" class="form-control fw-bold text-danger" value="{{ $icsNumber ?? 'ICS-2026-0001' }}" readonly>
+                        <label id="number_label">ICS Number</label>
+                        <input type="text" name="ics_no" id="ics_no" class="form-control fw-bold text-danger" value="{{ $splvNumber }}" readonly>
+                        <small class="text-muted" style="font-size: 0.7rem;">Auto-generates based on Category.</small>
                     </div>
                 </div>
             </div>
@@ -288,6 +290,8 @@
                                     <option value="pcs">pcs</option>
                                     <option value="boxes">boxes</option>
                                     <option value="kg">kg</option>
+                                    <option value="unit">unit</option>
+                                    <option value="set">set</option>
                                 </select>
                             </div>
                             <div class="col-md-8">
@@ -349,7 +353,7 @@
             <div style="font-size: 10pt;">Republic of the Philippines</div>
             <div style="font-size: 20pt; font-family: 'Old English Text MT', 'Engravers Old English', serif; line-height: 1;">Department of Education</div>
             <div style="font-size: 11pt;">Region V - Bicol</div>
-            <div style="font-size: 13pt; font-weight: bold; margin-top: 10px;">INVENTORY CUSTODIAN SLIP</div>
+            <div id="print_doc_title" style="font-size: 13pt; font-weight: bold; margin-top: 10px;">INVENTORY CUSTODIAN SLIP</div>
             <div id="p_category_value" style="font-size: 12pt; color: #777; font-weight: bold; margin-top: -2px; min-height: 20px;">Value</div>
         </div>
 
@@ -357,7 +361,7 @@
             <tr>
                 <td style="width: 12%; white-space: nowrap;">Fund Cluster:</td>
                 <td style="width: 43%; border-bottom: 1px solid black;" id="p_fund_cluster"></td>
-                <td style="width: 10%; text-align: right; padding-right: 10px; white-space: nowrap;">ICS No.</td>
+                <td id="print_doc_label" style="width: 10%; text-align: right; padding-right: 10px; white-space: nowrap;">ICS No:</td>
                 <td style="width: 35%; border-bottom: 1px solid black; font-weight: bold;" id="p_ics_no"></td>
             </tr>
         </table>
@@ -422,7 +426,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Set Header Date
+        // Variables populated from the Backend Settings Controller
+        const parNo = "{{ $parNumber }}";
+        const sphvNo = "{{ $sphvNumber }}";
+        const splvNo = "{{ $splvNumber }}";
+
         function updateDate() {
             const now = new Date();
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' };
@@ -432,7 +440,6 @@
         setInterval(updateDate, 1000);
         updateDate();
 
-        // Add Item Row
         function addMoreItem() {
             const container = document.getElementById('items-container');
             const rows = container.querySelectorAll('.item-row');
@@ -443,7 +450,6 @@
             container.appendChild(newRow);
         }
 
-        // Remove Row
         function removeRow(link) {
             const container = document.getElementById('items-container');
             const rows = container.querySelectorAll('.item-row');
@@ -456,21 +462,59 @@
             }
         }
 
-        // Category Selection Rule
-        let selectedCategoryValue = 'Value';
+        // --- NEW: Category Selection & Dynamic Label Changing Logic ---
+        let selectedCategoryValue = 'Low - Valued'; // Default
+        
         function selectOnlyThis(clickedCheckbox) {
             let checkboxes = document.getElementsByName('item_category');
             checkboxes.forEach((item) => {
                 if (item !== clickedCheckbox) item.checked = false;
             });
-            selectedCategoryValue = clickedCheckbox.checked ? clickedCheckbox.value : 'Value';
+            
+            let labelEl = document.getElementById('number_label');
+            let inputEl = document.getElementById('ics_no');
+            
+            // Print Elements
+            let printTitle = document.getElementById('print_doc_title');
+            let printLabel = document.getElementById('print_doc_label');
+            let mainFormTitle = document.getElementById('form-main-title');
+            
+            if (clickedCheckbox.checked) {
+                selectedCategoryValue = clickedCheckbox.value;
+                if (clickedCheckbox.value === 'PPE') {
+                    labelEl.innerText = 'PAR Number';
+                    inputEl.value = parNo;
+                    printTitle.innerText = 'PROPERTY ACKNOWLEDGMENT RECEIPT';
+                    mainFormTitle.innerText = 'PROPERTY ACKNOWLEDGMENT RECEIPT';
+                    printLabel.innerText = 'PAR No:';
+                } else if (clickedCheckbox.value === 'High - Valued') {
+                    labelEl.innerText = 'ICS Number';
+                    inputEl.value = sphvNo;
+                    printTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                    mainFormTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                    printLabel.innerText = 'ICS No:';
+                } else if (clickedCheckbox.value === 'Low - Valued') {
+                    labelEl.innerText = 'ICS Number';
+                    inputEl.value = splvNo;
+                    printTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                    mainFormTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                    printLabel.innerText = 'ICS No:';
+                }
+            } else {
+                // Default fallback if unchecking
+                selectedCategoryValue = 'Low - Valued';
+                labelEl.innerText = 'ICS Number';
+                inputEl.value = splvNo;
+                printTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                mainFormTitle.innerText = 'INVENTORY CUSTODIAN SLIP';
+                printLabel.innerText = 'ICS No:';
+            }
         }
 
-        // Print Mapping
         function prepareAndPrint() {
             document.getElementById('p_fund_cluster').innerText = document.getElementById('fund_cluster')?.value || '';
             document.getElementById('p_ics_no').innerText = document.getElementById('ics_no')?.value || '';
-            document.getElementById('p_category_value').innerText = selectedCategoryValue;
+            document.getElementById('p_category_value').innerText = selectedCategoryValue === 'Low - Valued' ? 'Value' : selectedCategoryValue;
 
             document.getElementById('p_sig_from_name').innerText = document.getElementById('sig_from_name')?.value || '';
             document.getElementById('p_sig_by_name').innerText = document.getElementById('sig_by_name')?.value || '';

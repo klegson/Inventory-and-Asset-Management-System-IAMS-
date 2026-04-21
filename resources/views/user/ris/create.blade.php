@@ -154,6 +154,13 @@
             body * { visibility: hidden; }
             .sidebar, .main-content { display: none !important; margin: 0 !important; padding: 0 !important; }
 
+            .main-content {
+                margin-left: 260px;
+                padding: 20px;
+                padding-top: 80px !important;
+                min-height: 100vh;
+            }
+
             #print-area, #print-area * {
                 visibility: visible;
             }
@@ -189,6 +196,7 @@
 </head>
 <body>
 
+    @include('layouts.user_header')
     @include('layouts.user_sidebar')
 
 <div class="main-content">

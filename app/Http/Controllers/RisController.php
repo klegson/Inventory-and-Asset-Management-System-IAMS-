@@ -9,13 +9,39 @@ use Illuminate\Http\Request;
 
 class RisController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $requests = RisRequest::orderByRaw("FIELD(status, 'Pending Staff Review', 'Forwarded to Admin', 'Approved', 'Declined', 'Rejected', 'Cancelled') DESC")
-                              ->orderBy('created_at', 'desc')
-                              ->get();
+        $perPage = $request->input('per_page', 10);
+        $query = RisRequest::query();
+
+        // Apply Search Filter (by RIS No or Requester Name)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('ris_no', 'like', "%{$search}%")
+                  ->orWhere('sig_requested_by', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply Status Filter
+        if ($request->filled('status_filter') && $request->status_filter !== 'All') {
+            $query->where('status', $request->status_filter);
+        }
+
+        // Apply Sorting (Defaults to Latest First)
+        $sort = $request->input('sort', 'latest');
+        if ($sort === 'oldest') {
+            $query->orderBy('created_at', 'asc');
+        } elseif ($sort === 'priority') {
+            $query->orderByRaw("FIELD(status, 'Pending Staff Review', 'Forwarded to Admin', 'Approved', 'Declined', 'Rejected', 'Cancelled') asc")
+                  ->orderBy('created_at', 'desc');
+        } else {
+            $query->orderBy('created_at', 'desc'); // Newest first
+        }
+
+        $requests = $query->paginate($perPage);
                               
-        return view('ris.index', compact('requests'));
+        return view('ris.index', compact('requests', 'perPage'));
     }
 
     public function review($id)

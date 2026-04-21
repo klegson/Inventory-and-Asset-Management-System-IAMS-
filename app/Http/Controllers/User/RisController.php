@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\RisRequest;
 use App\Models\RisItem;
 use App\Models\Supply; 
+use App\Models\SystemSetting; // <--- ADDED
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -13,9 +14,12 @@ class RisController extends Controller
 {
     public function create()
     {
-        $yearMonth = date('Y-m');
-        $count = RisRequest::whereMonth('created_at', date('m'))->count() + 1;
-        $risNumber = 'RIS-' . $yearMonth . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+        // Preview the upcoming RIS Number from settings
+        $seqSetting = SystemSetting::firstOrCreate(
+            ['key' => 'seq_ris_no'], 
+            ['value' => '1']
+        );
+        $risNumber = 'RIS-' . date('Y-m') . '-' . str_pad($seqSetting->value, 4, '0', STR_PAD_LEFT);
         
         $supplies = Supply::orderBy('article', 'asc')->get();
 
@@ -26,9 +30,35 @@ class RisController extends Controller
     {
         $user = Auth::user();
 
+        // --- NEW RIS SEQUENCE GENERATION LOGIC ---
+        // 1. Get the current sequence from settings (default to 1 if empty)
+        $seqSetting = SystemSetting::firstOrCreate(
+            ['key' => 'seq_ris_no'], 
+            ['value' => '1']
+        );
+
+        $currentNumber = (int) $seqSetting->value;
+        $yearMonth = date('Y-m'); 
+
+        // 2. Pad the number with zeros (e.g. 0001)
+        $sequenceFormatted = str_pad($currentNumber, 4, '0', STR_PAD_LEFT); 
+
+        // 3. Generate the RIS No
+        $generatedRisNo = 'RIS-' . $yearMonth . '-' . $sequenceFormatted;
+
+        // 4. Failsafe: Prevent duplicates if two users submit at the exact same second
+        while (RisRequest::where('ris_no', $generatedRisNo)->exists()) {
+            $currentNumber++;
+            $sequenceFormatted = str_pad($currentNumber, 4, '0', STR_PAD_LEFT);
+            $generatedRisNo = 'RIS-' . $yearMonth . '-' . $sequenceFormatted;
+        }
+
+        // 5. IMPORTANT: Increment the admin setting by 1 for the next request!
+        $seqSetting->update(['value' => $currentNumber + 1]);
+
         $ris = new RisRequest();
         $ris->user_id = $user->id; 
-        $ris->ris_no = $request->ris_no;
+        $ris->ris_no = $generatedRisNo; // Securely assign the server-generated number
         $ris->entity_name = $request->entity_name;
         $ris->division = $request->unit_section;
         $ris->office = $request->office;
@@ -62,7 +92,7 @@ class RisController extends Controller
             }
         }
 
-        return redirect('/user/ris/history')->with('msg', 'RIS Request successfully submitted!');
+        return redirect('/user/ris/history')->with('msg', 'RIS Request successfully submitted! Your assigned RIS No. is ' . $generatedRisNo);
     }
 
     public function history(Request $request)
@@ -94,7 +124,7 @@ class RisController extends Controller
             }
         }
 
-        $perPage = $request->input('per_page', 5);
+        $perPage = $request->input('per_page', 10); // Match other tables defaults
         $requests = $query->orderBy('created_at', 'desc')->paginate($perPage);
 
         return view('user.ris.history', compact('requests', 'perPage'));
@@ -165,7 +195,7 @@ class RisController extends Controller
                     'unit' => $request->unit_measure[$i] ?? null,
                     'description' => $request->description[$i],
                     'req_quantity' => $request->quantity[$i] ?? null,
-                    'stock_avail' => 'N/A', // Automatically defaults to N/A for User Side Edit
+                    'stock_avail' => 'N/A', 
                     'remarks' => $request->remarks[$i] ?? null,
                 ]);
             }

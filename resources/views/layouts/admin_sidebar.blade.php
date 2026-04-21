@@ -95,30 +95,20 @@
         transform: translateY(-50%) rotate(180deg);
         text-align: center;
     }
-    
-    .btn-logout {
-        width: 100%;
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 5px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .btn-logout:hover {
-        background-color: #bb2d3b;
-        color: white;
+
+    .sidebar-footer {
+        margin-top: auto;
+        padding: 20px;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
     }
 </style>
 
 <div class="sidebar">
     <div class="sidebar-header">
-        <img src="{{ asset('assets/images/DepEdseal.png') }}" alt="Logo">
+        <img src="{{ asset('assets/images/depedRovCirc.png') }}" alt="Logo">
         <h5>AMS HEAD</h5>
     </div>
 
@@ -152,6 +142,10 @@
             </div>
         </div>
 
+        <a href="{{ url('/admin/po') }}" class="nav-link {{ request()->is('admin/po*') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice fa-fw"></i> Purchase Orders
+        </a>
+
         <a href="{{ url('/admin/requests') }}" class="nav-link {{ request()->is('admin/requests*') ? 'active' : '' }}">
             <i class="fas fa-file-signature fa-fw"></i> Requests (RIS)
         </a>
@@ -171,40 +165,17 @@
         <a href="{{ url('/admin/users') }}" class="nav-link {{ request()->is('admin/users*') ? 'active' : '' }}">
             <i class="fas fa-users-cog fa-fw"></i> User Management
         </a>
+
+        <a href="{{ url('/admin/settings') }}" class="nav-link {{ request()->is('admin/settings*') ? 'active' : '' }}">
+            <i class="fas fa-cog fa-fw"></i> System Settings
+        </a>
     </nav>
 
     <div class="sidebar-footer">
-        <a href="#" class="btn-logout" data-bs-toggle="modal" data-bs-target="#logoutModal">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
+        &copy; {{ date('Y') }} DepEd AMS.
     </div>
 </div>
 
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true" style="z-index: 1051;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title" id="logoutModalLabel">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Confirm Logout
-                </h5>
-            </div>
-            <div class="modal-body text-center py-4">
-                <p class="fs-5 mb-0">Are you sure you want to log out of AMS Admin?</p>
-                <small class="text-muted">You will need to login again to access the dashboard.</small>
-            </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
-                
-                <form id="logout-form" action="{{ url('/logout') }}" method="POST" style="display: none;">
-                    @csrf
-                </form>
-                <button type="button" class="btn btn-danger px-4" onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                    Yes, Logout
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
     // FIXED: Remembers your sidebar choice and applies it across page navigations seamlessly
@@ -237,7 +208,7 @@
     });
 
     let idleTimer;
-    const idleTimeLimit = 60000; 
+    const idleTimeLimit = 120000; 
 
     function resetIdleTimer() {
         clearTimeout(idleTimer);

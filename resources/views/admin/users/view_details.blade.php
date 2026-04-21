@@ -18,7 +18,7 @@
          style="width: 100px; height: 100px; margin-top: -50px; border: 4px solid white;">
         
         @if(!empty($user->image))
-            <img src="/uploads/users/{{ $user->image }}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
+            <img src="{{ asset('uploads/users/' . $user->image) }}" alt="Profile Photo" style="width: 100%; height: 100%; object-fit: cover;">
         @else
             <div class="rounded-circle d-flex justify-content-center align-items-center text-white fw-bold fs-2 w-100 h-100" 
                  style="background: linear-gradient(135deg, #101954, #0a4d9c);">
@@ -43,10 +43,6 @@
         <div class="row mb-2">
             <div class="col-5 text-muted small fw-bold text-uppercase">Email Address</div>
             <div class="col-7 fw-semibold text-primary" style="word-break: break-word;">{{ $user->email }}</div>
-        </div>
-        <div class="row mb-2">
-            <div class="col-5 text-muted small fw-bold text-uppercase">Contact No.</div>
-            <div class="col-7 fw-semibold">{{ $user->contact_number ?: 'Not provided' }}</div>
         </div>
         <div class="row">
             <div class="col-5 text-muted small fw-bold text-uppercase">Joined Date</div>

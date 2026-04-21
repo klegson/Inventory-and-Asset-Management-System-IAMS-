@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Supply;
 use App\Models\Transaction;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\SystemSetting;
 use Illuminate\Http\Request;
 
 class SupplyController extends Controller
@@ -11,42 +14,93 @@ class SupplyController extends Controller
     public function index(Request $request)
     {
         $perPage = $request->input('per_page', 10);
+        $query = Supply::query();
 
-        // Fetch the data paginated
-        $supplies = Supply::orderBy('id', 'desc')->paginate($perPage);
+        // Apply Search Filter (Stock No, Article, or Description)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('barcode_id', 'like', "%{$search}%")
+                  ->orWhere('article', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply Status Filter
+        if ($request->filled('status_filter') && $request->status_filter !== 'All') {
+            if ($request->status_filter === 'Available') {
+                $query->whereColumn('quantity', '>', 'low_stock_threshold');
+            } elseif ($request->status_filter === 'Low Stock') {
+                $query->whereColumn('quantity', '<=', 'low_stock_threshold')
+                      ->where('quantity', '>', 0);
+            } elseif ($request->status_filter === 'Out of Stock') {
+                $query->where('quantity', '<=', 0);
+            }
+        }
+
+        // Fetch the data paginated and sorted by newest
+        $supplies = $query->orderBy('id', 'desc')->paginate($perPage);
         
-        return view('supplies.index', compact('supplies', 'perPage'));
+        // Fetch ALL delivered PO items, eager loading their parent PO for supplier info
+        $deliveredPoItems = PurchaseOrderItem::with('purchaseOrder')
+            ->where('is_delivered', true)
+            ->get();
+
+        return view('supplies.index', compact('supplies', 'perPage', 'deliveredPoItems'));
     }
 
     public function store(Request $request)
     {
-        $imageName = null;
+        // 1. DUPLICATE CHECK (Only runs if 'force_save' is not present)
+        if (!$request->has('force_save')) {
+            $existing = Supply::where('article', trim($request->article))
+                ->where('description', trim($request->description))
+                ->where('unit_measure', trim($request->unit_measure))
+                ->where('unit_value', $request->unit_value);
+                
+            // Check supplier (which might be null/empty)
+            if ($request->filled('supplier')) {
+                $existing->where('supplier', trim($request->supplier));
+            } else {
+                $existing->where(function($q) {
+                    $q->whereNull('supplier')->orWhere('supplier', '');
+                });
+            }
 
-        // Check if a file was uploaded
+            $duplicate = $existing->first();
+
+            // If an exact duplicate is found, return JSON to trigger the SweetAlert popup
+            if ($duplicate) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'status' => 'duplicate',
+                        'existing_id' => $duplicate->id
+                    ]);
+                }
+            }
+        }
+
+        // 2. CONTINUE SAVING (If no duplicate, or if user forced it)
+        $imageName = null;
         if ($request->hasFile('image')) {
             $imageName = time() . '_' . $request->file('image')->getClientOriginalName();
             $request->file('image')->storeAs('supplies', $imageName, 'public');
         }
 
-        // AUTO-GENERATE BARCODE: SUP-YYYY-MM-XXXX
-        $yearMonth = date('Y-m'); // e.g., 2026-02
-        
-        // Count how many supplies were created this month to generate the sequence
-        $countThisMonth = Supply::where('barcode_id', 'like', 'SUP-' . $yearMonth . '-%')->count();
-        $sequenceNumber = str_pad($countThisMonth + 1, 4, '0', STR_PAD_LEFT); // e.g., 0001
-        
-        $generatedBarcode = 'SUP-' . $yearMonth . '-' . $sequenceNumber;
+        $seqSetting = SystemSetting::firstOrCreate(
+            ['key' => 'seq_stock_no'], 
+            ['value' => '1']
+        );
 
-        // Failsafe: Just in case that exact barcode exists (e.g. if a previous one was manually altered), 
-        // keep incrementing the sequence until we find an available one.
-        while (Supply::where('barcode_id', $generatedBarcode)->exists()) {
-            $countThisMonth++;
-            $sequenceNumber = str_pad($countThisMonth + 1, 4, '0', STR_PAD_LEFT);
-            $generatedBarcode = 'SUP-' . $yearMonth . '-' . $sequenceNumber;
-        }
+        $currentNumber = (int) $seqSetting->value;
+        $yearMonth = date('Y-m'); 
+        $sequenceFormatted = str_pad($currentNumber, 4, '0', STR_PAD_LEFT); 
+        $generatedBarcode = 'SUP-' . $yearMonth . '-' . $sequenceFormatted;
+
+        $seqSetting->update(['value' => $currentNumber + 1]);
 
         $supply = Supply::create([
-            'barcode_id' => $generatedBarcode, // Use the auto-generated sequence barcode
+            'barcode_id' => $generatedBarcode, 
             'article' => $request->article,
             'description' => $request->description,
             'supplier' => $request->supplier,
@@ -54,6 +108,7 @@ class SupplyController extends Controller
             'unit_value' => $request->unit_value,
             'status' => $request->status ?? 'Available',
             'quantity' => $request->initial_quantity ?? 0,
+            'low_stock_threshold' => $request->low_stock_threshold ?? 10, 
             'image' => $imageName 
         ]);
 
@@ -66,6 +121,11 @@ class SupplyController extends Controller
             'transaction_date' => date('Y-m-d'),
             'remarks' => 'Opening Balance / New Item',
         ]);
+
+        // If AJAX request, return a success JSON so the page can reload smoothly
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['status' => 'success']);
+        }
 
         return redirect('/supplies')->with('msg', 'saved');
     }
@@ -81,6 +141,7 @@ class SupplyController extends Controller
         $stockNo = !empty($supply->barcode_id) ? $supply->barcode_id : 'N/A';
         $qty = intval($supply->quantity);
         $unitValue = floatval($supply->unit_value);
+        $threshold = intval($supply->low_stock_threshold ?? 10); 
         
         $formattedUnitValue = number_format($unitValue, 2);
         $formattedTotalValue = number_format($qty * $unitValue, 2);
@@ -91,12 +152,11 @@ class SupplyController extends Controller
         if ($qty == 0) {
             $status_class = 'status-out text-danger';
             $status_text = 'Out of Stock';
-        } elseif ($qty < 10) {
+        } elseif ($qty <= $threshold) { 
             $status_class = 'status-low text-warning';
             $status_text = 'Low Stock';
         }
 
-        // Handle image path and Lightbox Logic
         $imageHtml = '<i class="fas fa-image fa-2x text-muted"></i>';
         $lightboxHtml = '';
         
@@ -112,13 +172,11 @@ class SupplyController extends Controller
             </div>';
         }
 
-        // Generate Visual Barcode Graphic via Free API
         $barcodeVisual = '';
         if ($stockNo !== 'N/A') {
             $barcodeVisual = '<div class="mt-2"><img src="https://bwipjs-api.metafloor.com/?bcid=code128&text=' . urlencode($stockNo) . '&scale=2&height=10&includetext=true" alt="Barcode Graphic" style="max-width: 100%; mix-blend-mode: multiply;"></div>';
         }
 
-        // Return the HTML directly using Heredoc
         return <<<HTML
         {$lightboxHtml}
         
@@ -161,6 +219,11 @@ class SupplyController extends Controller
                 <span class="text-muted">Total Value:</span>
                 <span class="fw-bold text-dark">₱{$formattedTotalValue}</span>
             </div>
+
+            <div class="d-flex justify-content-between border-bottom py-2 mb-2">
+                <span class="text-muted">Low Stock Threshold:</span>
+                <span class="fw-bold text-dark">{$threshold}</span>
+            </div>
             
             <div class="d-flex justify-content-between border-bottom py-2 mb-2">
                 <span class="text-muted">Supplier:</span>
@@ -190,15 +253,15 @@ HTML;
             'supplier' => $request->supplier,
             'unit_measure' => $request->unit_measure,
             'unit_value' => $request->unit_value,
-            'quantity' => $request->quantity, // Automatically updates the quantity in the database!
+            'quantity' => $request->quantity,
+            'low_stock_threshold' => $request->low_stock_threshold ?? 10,
             'status' => $request->status ?? 'Available',
         ];
 
-        // Check if a new image was uploaded during edit
         if ($request->hasFile('image')) {
             $imageName = time() . '_' . $request->file('image')->getClientOriginalName();
             $request->file('image')->storeAs('supplies', $imageName, 'public');
-            $dataToUpdate['image'] = $imageName; // Overwrite the old image with the new one
+            $dataToUpdate['image'] = $imageName;
         }
 
         $supply->update($dataToUpdate);

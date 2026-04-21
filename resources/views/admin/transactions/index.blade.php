@@ -98,7 +98,7 @@
         <div class="d-flex justify-content-between align-items-center mb-4 no-print border-bottom pb-2" style="border-color: #003366 !important;">
             <div>
                 <h2 style="color: #003366; margin: 0;">
-                    <i class="fas fa-exchange-alt me-2"></i> Transaction History
+                    <i class="fas fa-history fa-fw"></i> Transaction History
                 </h2>
                 <small class="text-muted">Track all inventory movements (In, Out, and New Items).</small>
             </div>

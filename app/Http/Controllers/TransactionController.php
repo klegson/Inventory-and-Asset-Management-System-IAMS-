@@ -9,7 +9,7 @@ class TransactionController extends Controller
 {
     public function index(Request $request)
     {
-        $perPage = $request->input('per_page', 6);
+        $perPage = $request->input('per_page', 5);
 
         // Replicating your PHP LEFT JOIN logic safely in Laravel
         $transactions = DB::table('transactions as t')

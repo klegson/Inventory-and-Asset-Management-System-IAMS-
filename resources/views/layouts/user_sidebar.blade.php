@@ -58,30 +58,19 @@
         padding: 20px;
     }
 
-    .btn-logout {
-        width: 100%;
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 5px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-
-    .btn-logout:hover {
-        background-color: #bb2d3b;
-        color: white;
+    .sidebar-footer {
+        margin-top: auto;
+        padding: 20px;
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
     }
 </style>
 
 <div class="sidebar">
     <div class="sidebar-header">
-        <img src="{{ asset('assets/images/DepEdseal.png') }}" alt="Logo">
+        <img src="{{ asset('assets/images/depedRovCirc.png') }}" alt="Logo">
         <h5>DIVISION USER</h5>
     </div>
     
@@ -101,39 +90,13 @@
         <a href="{{ url('/user/ics') }}" class="nav-link {{ request()->is('user/ics*') ? 'active' : '' }}">
             <i class="fa-solid fa-file-invoice"></i> ICS
         </a>
-        
-        <a href="{{ url('/user/profile') }}" class="nav-link {{ request()->is('user/profile*') ? 'active' : '' }}">
-            <i class="fa-solid fa-user"></i> Personal Information
-        </a>
     </div>
 
-    <div class="logout-container">
-        <a href="#" class="btn-logout" data-bs-toggle="modal" data-bs-target="#logoutModal">
-            <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
-        </a>
+    <div class="sidebar-footer">
+        &copy; {{ date('Y') }} DepEd AMS.
     </div>
 </div>
 
-<div class="modal fade" id="logoutModal" tabindex="-1" style="z-index: 1051;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Logout</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <p class="fs-5 mb-0">Are you sure you want to log out?</p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ url('/logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-danger px-4">Yes, Logout</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
     let idleTimer;
@@ -144,7 +107,7 @@
     // 1 Minute  = 60000
     // 5 Minutes = 300000
     // =====================================================================
-    const idleTimeLimit = 60000; 
+    const idleTimeLimit = 120000; 
 
     function resetIdleTimer() {
         clearTimeout(idleTimer);

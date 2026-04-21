@@ -170,7 +170,7 @@
         </div>
 
         <div class="tap-msg">
-            <i class="fas fa-hand-pointer me-2"></i> CLICK OR PRESS ANY KEY TO START
+            <i class="fas fa-hand-pointer me-2"></i> CLICK OR PRESS ANY KEY TO RETURN
         </div>
     </section>
 

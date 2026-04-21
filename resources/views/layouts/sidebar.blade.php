@@ -9,6 +9,9 @@
         color: white;
         transition: all 0.3s;
         z-index: 1000;
+        /* Add Flexbox to push footer to bottom */
+        display: flex;
+        flex-direction: column;
         overflow-y: auto;
     }
     .sidebar-header {
@@ -46,30 +49,14 @@
         color: #fff;
         border-left-color: #fca311; /* Accent Yellow */
     }
+    
     .sidebar-footer {
-        position: absolute;
-        bottom: 0;
-        width: 100%;
+        margin-top: auto;
         padding: 20px;
+        text-align: center;
         border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .btn-logout {
-        width: 100%;
-        background-color: #dc3545;
-        color: white;
-        border: none;
-        padding: 10px;
-        border-radius: 5px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 10px;
-        text-decoration: none;
-    }
-    .btn-logout:hover {
-        background-color: #bb2d3b;
-        color: white;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 0.85rem;
     }
 </style>
 
@@ -95,6 +82,10 @@
         <a href="{{ url('/ris') }}" class="nav-link {{ request()->is('ris*') ? 'active' : '' }}">
             <i class="fas fa-clipboard-list fa-fw"></i> Requests (RIS)
         </a>
+
+        <a href="{{ url('/po') }}" class="nav-link {{ request()->is('po*') ? 'active' : '' }}">
+            <i class="fas fa-file-invoice-dollar fa-fw"></i> Purchase Orders
+        </a>
         
         <a href="{{ url('/barcodes') }}" class="nav-link {{ request()->is('barcodes*') ? 'active' : '' }}">
             <i class="fas fa-barcode fa-fw"></i> Barcodes List
@@ -104,32 +95,9 @@
             <i class="fas fa-history fa-fw"></i> Transactions History
         </a>
     </nav>
-
+    
     <div class="sidebar-footer">
-        <a href="#" class="btn-logout" data-bs-toggle="modal" data-bs-target="#logoutModal">
-            <i class="fas fa-sign-out-alt"></i> Logout
-        </a>
-    </div>
-</div>
-
-<div class="modal fade" id="logoutModal" tabindex="-1" style="z-index: 1051;">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirm Logout</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center py-4">
-                <p class="fs-5 mb-0">Are you sure you want to log out?</p>
-            </div>
-            <div class="modal-footer border-0 justify-content-center">
-                <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Cancel</button>
-                <form action="{{ url('/logout') }}" method="POST">
-                    @csrf
-                    <button type="submit" class="btn btn-danger px-4">Yes, Logout</button>
-                </form>
-            </div>
-        </div>
+        &copy; {{ date('Y') }} DepEd AMS.
     </div>
 </div>
 
@@ -142,7 +110,7 @@
     // 1 Minute  = 60000
     // 5 Minutes = 300000
     // =====================================================================
-    const idleTimeLimit = 60000; 
+    const idleTimeLimit = 120000; 
 
     function resetIdleTimer() {
         clearTimeout(idleTimer);

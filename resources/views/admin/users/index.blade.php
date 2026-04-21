@@ -102,7 +102,6 @@
                                             data-fname="{{ $row->firstname }}"
                                             data-lname="{{ $row->lastname }}"
                                             data-dept="{{ $row->department }}"
-                                            data-contact="{{ $row->contact_number }}"
                                             data-email="{{ $row->email }}"
                                             data-role="{{ strtolower($row->role) }}"
                                             data-status="{{ $row->status }}"
@@ -158,13 +157,6 @@
                             <div class="col-md-6">
                                 <label class="form-label">Last Name <span class="text-danger">*</span></label>
                                 <input type="text" name="lastname" class="form-control" required>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label">Contact Number</label>
-                                <input type="text" name="contact_number" class="form-control" placeholder="e.g. 09123456789">
                             </div>
                         </div>
 
@@ -258,13 +250,6 @@
                             <div class="col-md-6">
                                 <label class="form-label">Last Name <span class="text-danger">*</span></label>
                                 <input type="text" name="lastname" id="edit_lastname" class="form-control" required>
-                            </div>
-                        </div>
-
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-12">
-                                <label class="form-label">Contact Number</label>
-                                <input type="text" name="contact_number" id="edit_contact" class="form-control">
                             </div>
                         </div>
 
@@ -420,7 +405,6 @@
             }
         });
 
-
         // --- View Modal AJAX ---
         function loadViewModal(id) {
             const contentArea = document.getElementById('view_details_content');
@@ -455,13 +439,12 @@
                 document.getElementById('editForm').action = `/admin/users/${id}`;
                 document.getElementById('edit_firstname').value = this.getAttribute('data-fname');
                 document.getElementById('edit_lastname').value = this.getAttribute('data-lname');
-                document.getElementById('edit_contact').value = this.getAttribute('data-contact');
                 document.getElementById('edit_email').value = this.getAttribute('data-email');
                 
                 document.getElementById('edit_role').value = this.getAttribute('data-role'); 
                 document.getElementById('edit_status').value = this.getAttribute('data-status');
 
-                // Advanced Logic to auto-select the correct Division and Section!
+                // Advanced Logic to auto-select the correct Division and Section
                 const userDept = this.getAttribute('data-dept');
                 const divisionSelect = document.getElementById('edit_division');
                 const sectionSelect = document.getElementById('edit_section');

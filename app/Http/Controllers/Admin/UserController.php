@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
@@ -24,7 +25,9 @@ class UserController extends Controller
         ]);
 
         $data = $request->except(['password', 'image', 'designation', 'employee_id']);
-        $data['password'] = $request->password; 
+        
+        // Hash the password for security
+        $data['password'] = Hash::make($request->password); 
         
         // Add the remember token upon user creation
         $data['remember_token'] = Str::random(10);
@@ -53,7 +56,8 @@ class UserController extends Controller
         $data = $request->except(['password', 'image', 'designation', 'employee_id']);
 
         if ($request->filled('password')) {
-            $data['password'] = $request->password; 
+            // Hash the new password if the admin provided one
+            $data['password'] = Hash::make($request->password); 
         }
 
         // Upload directly to public/uploads/users

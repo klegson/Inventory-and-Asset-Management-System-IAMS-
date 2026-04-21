@@ -65,10 +65,10 @@
 
     <div class="main-content">
         
-        <div class="d-flex justify-content-between align-items-center mb-4 no-print border-bottom pb-2" style="border-color: #003366 !important;">
+        <div class="d-flex justify-content-between align-items-center mb-4 no-print">
             <div>
                 <h2 style="color: #003366; margin: 0;">
-                    <i class="fas fa-barcode me-2"></i> Barcode Master List
+                    <i class="fas fa-barcode text-primary me-2"></i> Barcode Master List
                 </h2>
                 <small class="text-muted">Live directory of all system-generated inventory barcodes.</small>
             </div>

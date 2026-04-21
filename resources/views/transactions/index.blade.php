@@ -240,7 +240,7 @@
                         <span class="text-muted small me-2">Per page</span>
                         <form action="{{ url('/transactions') }}" method="GET" id="perPageForm">
                             <select name="per_page" class="form-select form-select-sm shadow-none" style="width: 70px; border-color: #101954; color: #101954; font-weight: 500;" onchange="document.getElementById('perPageForm').submit();">
-                                <option value="6" {{ $perPage == 6 ? 'selected' : '' }}>6</option>
+                                <option value="6" {{ $perPage == 5 ? 'selected' : '' }}>5</option>
                                 <option value="15" {{ $perPage == 15 ? 'selected' : '' }}>15</option>
                                 <option value="25" {{ $perPage == 25 ? 'selected' : '' }}>25</option>
                                 <option value="50" {{ $perPage == 50 ? 'selected' : '' }}>50</option>

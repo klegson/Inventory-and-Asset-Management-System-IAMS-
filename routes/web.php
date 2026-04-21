@@ -8,6 +8,8 @@ use App\Http\Controllers\SupplyController;
 use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\NotificationController as StaffNotificationController;
+use App\Http\Controllers\Admin\NotificationController as AdminNotificationController;
 use App\Http\Controllers\Admin\SupplyController as AdminSupplyController;
 use App\Http\Controllers\Admin\AssetController as AdminAssetController;
 use App\Http\Controllers\Admin\RisController as AdminRisController;
@@ -20,10 +22,9 @@ use App\Http\Controllers\User\ProfileController as UserProfileController;
 use App\Http\Controllers\RisController as StaffRisController;
 use App\Http\Controllers\Admin\BarcodeController as AdminBarcodeController;
 use App\Http\Controllers\Admin\TransactionController as AdminTransactionController;
-
-// NEW: Separated Search Controllers
 use App\Http\Controllers\GlobalSearchController as StaffSearchController;
 use App\Http\Controllers\Admin\GlobalSearchController as AdminSearchController;
+use App\Http\Controllers\PurchaseOrderController;
 
 // --- GUEST ROUTES (Login) ---
 Route::middleware('guest')->group(function () {
@@ -46,9 +47,18 @@ Route::middleware('auth')->group(function () {
     // ==========================================
     // Staff Global Search
     Route::get('/global-search', [StaffSearchController::class, 'search'])->name('staff.global.search');
-    
+    Route::get('/notifications/fetch', [StaffNotificationController::class, 'fetch'])->name('staff.notifications.fetch');
+
+    // Purchase Orders
+    Route::get('/po', [\App\Http\Controllers\PurchaseOrderController::class, 'index'])->name('po.index');
+    Route::post('/po', [\App\Http\Controllers\PurchaseOrderController::class, 'store'])->name('po.store');
+    Route::get('/po/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'show'])->name('po.show');
+    Route::put('/po/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'update'])->name('po.update');
+    Route::delete('/po/{id}', [\App\Http\Controllers\PurchaseOrderController::class, 'destroy'])->name('po.destroy');
+
     // Dashboard
     Route::get('/', [DashboardController::class, 'index']);
+    Route::get('/dashboard/chart-data', [\App\Http\Controllers\DashboardController::class, 'getChartData']);
 
     // Assets
     Route::get('/asset-list', [AssetController::class, 'index']);
@@ -72,17 +82,24 @@ Route::middleware('auth')->group(function () {
     Route::post('/barcodes/scan', [BarcodeController::class, 'processScan']);
     Route::post('/barcodes/recent-scans', [BarcodeController::class, 'recentScans']);
     
+    // Transactions
     Route::get('/transactions', [TransactionController::class, 'index']);
 
+    // RIS Requests
     Route::get('/ris', [StaffRisController::class, 'index']);
     Route::get('/ris/{id}/review', [StaffRisController::class, 'review']);
     Route::post('/ris/{id}/update', [StaffRisController::class, 'update']);
+
+    // Staff Profile
+    Route::post('/profile/update', [\App\Http\Controllers\ProfileController::class, 'update'])->name('profile.update');
 
     // ==========================================
     // 2. ADMIN ROUTES
     // ==========================================
     // Admin Global Search
     Route::get('/admin/global-search', [AdminSearchController::class, 'search'])->name('admin.global.search');
+    Route::get('/admin/notifications/fetch', [AdminNotificationController::class, 'fetch'])->name('admin.notifications.fetch');
+    Route::get('/admin/dashboard/chart-data', [\App\Http\Controllers\Admin\DashboardController::class, 'getChartData'])->name('admin.dashboard.chart-data');
 
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard']);
 
@@ -92,6 +109,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/admin/supplies/{id}', [AdminSupplyController::class, 'update']);
     Route::delete('/admin/supplies/{id}', [AdminSupplyController::class, 'destroy']);
     Route::get('/admin/supplies/{id}/details', [AdminSupplyController::class, 'details']);
+    Route::post('/admin/supplies/{id}/transaction', [AdminSupplyController::class, 'stockTransaction']);
 
     // Admin Assets
     Route::get('/admin/assets', [AdminAssetController::class, 'index']);
@@ -101,9 +119,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/assets/{id}/details', [AdminAssetController::class, 'details']);
 
     // Admin RIS Requests
+    Route::get('/admin/ris', [AdminRisController::class, 'index']);
+    Route::get('/admin/ris/{id}/review', [AdminRisController::class, 'review']);
+    Route::post('/admin/ris/{id}/process', [AdminRisController::class, 'process']);
+
+    // Legacy fallback for view buttons
     Route::get('/admin/requests', [AdminRisController::class, 'index']);
-    Route::get('/admin/requests/{id}/verify', [AdminRisController::class, 'verify']);
-    Route::post('/admin/requests/{id}/update', [AdminRisController::class, 'update']);
 
     // Admin Reports
     Route::get('/admin/reports', [ReportController::class, 'index']);
@@ -123,11 +144,28 @@ Route::middleware('auth')->group(function () {
     Route::get('/admin/transactions', [AdminTransactionController::class, 'index']);
     Route::delete('/admin/transactions/{id}', [AdminTransactionController::class, 'destroy']);
 
+    // Purchase Orders Admin Routes
+    Route::get('/admin/po', [App\Http\Controllers\Admin\PoController::class, 'index']);
+    Route::post('/admin/po', [App\Http\Controllers\Admin\PoController::class, 'store']);
+    Route::get('/admin/po/{id}', [App\Http\Controllers\Admin\PoController::class, 'show']);
+    Route::put('/admin/po/{id}', [App\Http\Controllers\Admin\PoController::class, 'update']);
+    Route::delete('/admin/po/{id}', [App\Http\Controllers\Admin\PoController::class, 'destroy']);
+
+    // System Settings
+    Route::get('/admin/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index']);
+    Route::post('/admin/settings/update', [App\Http\Controllers\Admin\SettingsController::class, 'update']);
+
     // ==========================================
     // 3. END-USER (DIVISION) ROUTES
     // ==========================================
     Route::get('/user/dashboard', [UserDashboardController::class, 'index']);
     Route::get('/user/supplies', [UserDashboardController::class, 'supplyOverview']);
+
+    // User Notifications
+    Route::get('/user/notifications/fetch', [\App\Http\Controllers\User\NotificationController::class, 'fetch'])->name('user.notifications.fetch');
+
+    // Profile Routes
+    Route::post('/user/profile', [\App\Http\Controllers\User\ProfileController::class, 'update']);
 
     // RIS Routes
     Route::get('/user/ris/create', [UserRisController::class, 'create']);
@@ -143,5 +181,4 @@ Route::middleware('auth')->group(function () {
 
     // Profile Routes
     Route::get('/user/profile', [UserProfileController::class, 'index']);
-    Route::post('/user/profile', [UserProfileController::class, 'update']);
 });
