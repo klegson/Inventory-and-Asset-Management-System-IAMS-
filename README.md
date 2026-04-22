@@ -58,8 +58,10 @@ Ensure you have the following installed:
 
 ### 2. Clone the Repository
 ```bash
-git clone [https://github.com/yourusername/your-repo-name.git](https://github.com/yourusername/your-repo-name.git)
-cd your-repo-name
+git clone [https://github.com/yourusername/Inventory-and-Asset-Management-System-IAMS-.git
+](https://github.com/yourusername/Inventory-and-Asset-Management-System-IAMS-.git
+)
+cd Inventory-and-Asset-Management-System-IAMS
 ```
 
 
