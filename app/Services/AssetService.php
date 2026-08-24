@@ -88,17 +88,27 @@ class AssetService
 
             $createdAssets = [];
             foreach ($members as $member) {
-                $prefix = $member['unit_value'] >= 50000 ? 'PPE' : ($member['unit_value'] >= 5000 ? 'HV' : 'LV');
+                $accountGroup = $data['ppe_sub_major_account_group'] ?? null;
+                $ledgerAccount = $data['general_ledger_account'] ?? null;
+                $locationOffice = $data['location_office'] ?? null;
+                $prefix = ($accountGroup === null && $ledgerAccount === null && $locationOffice === null)
+                    ? 'HV'
+                    : ($member['unit_value'] >= 50000 ? 'PPE' : ($member['unit_value'] >= 5000 ? 'HV' : 'LV'));
                 $setSequence = $member['set_sequence'];
+
                 $propertyNumber = implode('-', array_filter([
                     $prefix,
                     $year,
-                    $data['ppe_sub_major_account_group'],
-                    $data['general_ledger_account'],
+                    $accountGroup,
+                    $ledgerAccount,
                     str_pad($baseSerial, 5, '0', STR_PAD_LEFT),
                     $setSequence === null ? null : str_pad($setSequence, 2, '0', STR_PAD_LEFT),
-                    $data['location_office'],
+                    $locationOffice,
                 ], static fn ($part) => $part !== null && $part !== ''));
+
+                if ($accountGroup === null && $ledgerAccount === null && $locationOffice === null) {
+                    $propertyNumber = $prefix . '-' . $year . '-' . date('m-d', strtotime($acquisitionDate)) . '-' . str_pad($baseSerial, 4, '0', STR_PAD_LEFT);
+                }
 
                 $asset = Asset::create([
                     'inventory_date' => now()->toDateString(),
@@ -111,11 +121,11 @@ class AssetService
                     'model' => $member['model'],
                     'serial_number' => $member['serial_number'],
                     'acquisition_date' => $acquisitionDate,
-                    'ppe_sub_major_account_group' => $data['ppe_sub_major_account_group'],
-                    'general_ledger_account' => $data['general_ledger_account'],
-                    'location_office' => $data['location_office'],
+                    'ppe_sub_major_account_group' => $data['ppe_sub_major_account_group'] ?? null,
+                    'general_ledger_account' => $data['general_ledger_account'] ?? null,
+                    'location_office' => $data['location_office'] ?? null,
                     'set_sequence' => $setSequence,
-                    'unit_measure' => $data['unit_measure'],
+                    'unit_measure' => $data['unit_measure'] ?? 'Unit',
                     'person_accountable' => $data['person_accountable'] ?? null,
                     'validation_signatory' => $data['validation_signatory'] ?? null,
                     'supplier' => $data['supplier'] ?? null,

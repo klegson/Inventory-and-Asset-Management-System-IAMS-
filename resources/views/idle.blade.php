@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assets Management System - DepEd</title>
+    <title>Asset & Inventory Management System - DepEd</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -148,9 +148,9 @@
         <div class="container content-wrapper">
             <div class="row align-items-center">
                 <div class="col-lg-7 col-md-12">
-                    <div class="system-title">Asset Management Section</div>
+                    <div class="system-title">Asset & Inventory Management System</div>
                     <h1 class="main-heading">
-                        RIS Before <br> <span>Release</span>
+                        A.I.M System Under<br><span>Dev Process</span>
                     </h1>
                 </div>
 

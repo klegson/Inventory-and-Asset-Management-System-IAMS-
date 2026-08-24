@@ -140,11 +140,20 @@
         <div class="table-container">
             
             <form action="{{ url('/supplies') }}" method="GET" id="filterForm" class="row g-2 mb-3 align-items-center">
-                <div class="col-12 col-md-5">
+                <div class="col-12 col-md-4">
                     <div class="input-group shadow-sm mobile-stack">
                         <span class="input-group-text bg-white border-end-0"><i class="fas fa-search text-muted"></i></span>
-                        <input type="text" name="search" id="supplySearchInput" class="form-control border-start-0 ps-0" placeholder="Search Article or Description..." value="{{ request('search') }}">
+                        <input type="text" name="search" id="supplySearchInput" class="form-control border-start-0 ps-0" placeholder="Search Article, Brand, Model, or Description..." value="{{ request('search') }}">
                     </div>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <select name="brand_filter" class="form-select shadow-sm mobile-stack" onchange="document.getElementById('filterForm').submit();">
+                        <option value="All" {{ request('brand_filter', 'All') == 'All' ? 'selected' : '' }}>All Brands</option>
+                        @foreach($brandOptions ?? [] as $brandOption)
+                            <option value="{{ $brandOption }}" {{ request('brand_filter') == $brandOption ? 'selected' : '' }}>{{ $brandOption }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 
                 <div class="col-12 col-md-3">
@@ -156,8 +165,8 @@
                     </select>
                 </div>
 
-                <div class="col-12 col-md-4 text-md-end">
-                    @if(request('search') || request('status_filter') && request('status_filter') !== 'All')
+                <div class="col-12 col-md-3 text-md-end">
+                    @if(request('search') || (request('brand_filter') && request('brand_filter') !== 'All') || (request('status_filter') && request('status_filter') !== 'All'))
                         <a href="{{ url('/supplies') }}" class="btn btn-outline-danger btn-sm fw-bold shadow-sm mobile-stack">
                             <i class="fas fa-times me-1"></i> Clear Filters
                         </a>
@@ -170,6 +179,7 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-nowrap">Article / Item</th>
+                            <th class="text-nowrap">Brand / Model</th>
                             <th class="text-nowrap" style="min-width: 200px;">Description</th>
                             <th>Unit Value</th>
                             <th class="text-center">Remaining Stock</th>
@@ -201,6 +211,13 @@
                             @endphp
                             <tr class="clickable-row" data-id="{{ $row->id }}">
                                 <td class="fw-bold text-nowrap">{{ $row->article }}</td>
+                                <td class="text-nowrap">
+                                    @if($row->brand || $row->model)
+                                        {{ $row->brand }}{{ $row->brand && $row->model ? ' / ' : '' }}{{ $row->model }}
+                                    @else
+                                        <span class="text-muted">&mdash;</span>
+                                    @endif
+                                </td>
                                 <td>{{ Str::limit($row->description, 40) }}</td>
                                 <td class="text-nowrap">₱{{ number_format($row->unit_value, 2) }}</td>
                                 
@@ -226,6 +243,8 @@
                                                 data-id="{{ $row->id }}"
                                                 data-article="{{ $row->article }}"
                                                 data-desc="{{ $row->description }}"
+                                                data-brand="{{ $row->brand }}"
+                                                data-model="{{ $row->model }}"
                                                 data-supplier="{{ $row->supplier }}"
                                                 data-unit="{{ $row->unit_measure }}"
                                                 data-value="{{ $row->unit_value }}"
@@ -246,7 +265,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="text-center py-5 text-muted border-bottom-0">
+                                <td colspan="7" class="text-center py-5 text-muted border-bottom-0">
                                     <i class="fas fa-box-open fa-3x mb-3 opacity-25 d-block"></i>
                                     No supplies match your search filters.
                                 </td>
@@ -343,6 +362,16 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Supplier</label>
                                         <input type="text" name="supplier" id="add_supplier" class="form-control" placeholder="e.g. Pandayan">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Brand</label>
+                                        <input type="text" name="brand" id="add_brand" class="form-control" placeholder="e.g. HP, Epson">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Model / Sub-type</label>
+                                        <input type="text" name="model" id="add_model" class="form-control" placeholder="e.g. 680, C4400, Rev. B">
+                                        <small class="text-muted d-block mt-1">Use this to tell apart items with the same name and brand.</small>
                                     </div>
                                     
                                     <div class="col-12">
@@ -459,6 +488,16 @@
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Supplier</label>
                                         <input type="text" name="supplier" id="edit_supplier" class="form-control">
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Brand</label>
+                                        <input type="text" name="brand" id="edit_brand" class="form-control" placeholder="e.g. HP, Epson">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Model / Sub-type</label>
+                                        <input type="text" name="model" id="edit_model" class="form-control" placeholder="e.g. 680, C4400, Rev. B">
+                                        <small class="text-muted d-block mt-1">Use this to tell apart items with the same name and brand.</small>
                                     </div>
                                     
                                     <div class="col-12">
@@ -756,6 +795,8 @@
                 
                 document.getElementById('edit_article').value = this.getAttribute('data-article');
                 document.getElementById('edit_desc').value = this.getAttribute('data-desc');
+                document.getElementById('edit_brand').value = this.getAttribute('data-brand');
+                document.getElementById('edit_model').value = this.getAttribute('data-model');
                 document.getElementById('edit_supplier').value = this.getAttribute('data-supplier');
                 
                 let unitVal = this.getAttribute('data-unit');

@@ -60,6 +60,8 @@ class DatabaseSeeder extends Seeder
             'role'           => 'frontuser',
             'status'         => 'Active',
         ]);
+
+        // For future update, to imbed the procurement unit into the system and also the finance.
     }
 
     private function createUser(array $data): void

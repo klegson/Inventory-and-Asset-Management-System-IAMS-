@@ -25,8 +25,14 @@ class SupplyController extends Controller
             $search = $request->search;
             $query->where(function($q) use ($search) {
                                 $q->where('article', 'like', "%{$search}%")
-                  ->orWhere('description', 'like', "%{$search}%");
+                  ->orWhere('description', 'like', "%{$search}%")
+                  ->orWhere('brand', 'like', "%{$search}%")
+                  ->orWhere('model', 'like', "%{$search}%");
             });
+        }
+
+        if ($request->filled('brand_filter') && $request->brand_filter !== 'All') {
+            $query->where('brand', $request->brand_filter);
         }
 
         if ($request->filled('status_filter') && $request->status_filter !== 'All') {
@@ -41,7 +47,9 @@ class SupplyController extends Controller
         }
 
         $supplies = $query->orderBy('id', 'desc')->paginate($perPage);
-        
+
+        $brandOptions = Supply::whereNotNull('brand')->where('brand', '!=', '')->distinct()->orderBy('brand')->pluck('brand');
+
         $deliveredPoItems = collect();
         if (class_exists(PurchaseOrderItem::class)) {
             $existingSupplyDescriptions = Supply::pluck('description')->map(function($desc) {
@@ -60,7 +68,7 @@ class SupplyController extends Controller
             });
         }
         
-        return view('admin.supplies.index', compact('supplies', 'perPage', 'deliveredPoItems'));
+        return view('admin.supplies.index', compact('supplies', 'perPage', 'deliveredPoItems', 'brandOptions'));
     }
 
     public function store(Request $request)
@@ -78,6 +86,22 @@ class SupplyController extends Controller
             } else {
                 $existing->where(function($q) {
                     $q->whereNull('supplier')->orWhere('supplier', '');
+                });
+            }
+
+            if ($request->filled('brand')) {
+                $existing->where('brand', trim($request->brand));
+            } else {
+                $existing->where(function($q) {
+                    $q->whereNull('brand')->orWhere('brand', '');
+                });
+            }
+
+            if ($request->filled('model')) {
+                $existing->where('model', trim($request->model));
+            } else {
+                $existing->where(function($q) {
+                    $q->whereNull('model')->orWhere('model', '');
                 });
             }
 
@@ -102,6 +126,8 @@ class SupplyController extends Controller
         $supply = Supply::create([
             'article' => $request->article,
             'description' => $request->description,
+            'brand' => $request->brand,
+            'model' => $request->model,
             'unit_measure' => $request->unit_measure,
             'unit_value' => $request->unit_value,
             'quantity' => $request->initial_quantity,
@@ -150,6 +176,8 @@ class SupplyController extends Controller
         $supply->update([
             'article' => $request->article,
             'description' => $request->description,
+            'brand' => $request->brand,
+            'model' => $request->model,
             'unit_measure' => $request->unit_measure,
             'unit_value' => $request->unit_value,
             'quantity' => $request->quantity,
@@ -219,6 +247,8 @@ class SupplyController extends Controller
         $formattedTotalValue = number_format($totalInventory * $unitValue, 2);
 
         $supplierName = !empty($supply->supplier) ? htmlspecialchars($supply->supplier) : 'N/A';
+        $brandName = !empty($supply->brand) ? htmlspecialchars($supply->brand) : 'N/A';
+        $modelName = !empty($supply->model) ? htmlspecialchars($supply->model) : 'N/A';
 
         $status_class = 'status-available bg-success text-white';
         $status_text = 'Available';
@@ -267,6 +297,8 @@ class SupplyController extends Controller
                 <div class="progress" style="height: 10px;"><div class="progress-bar {$stockBarColor}" role="progressbar" style="width: {$percentageLeft}%;" aria-valuenow="{$percentageLeft}" aria-valuemin="0" aria-valuemax="100"></div></div>
             </div>
             <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Article:</span><span class="fw-bold text-dark">{$supply->article}</span></div>
+            <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Brand:</span><span class="fw-bold text-dark">{$brandName}</span></div>
+            <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Model:</span><span class="fw-bold text-dark">{$modelName}</span></div>
             <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Description:</span><span class="fw-bold text-dark text-end" style="max-width: 65%;">{$supply->description}</span></div>
             <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Unit Value:</span><span class="fw-bold text-dark">₱{$formattedUnitValue}</span></div>
             <div class="d-flex justify-content-between border-bottom py-2 mb-2"><span class="text-muted">Total Stock Value:</span><span class="fw-bold text-dark">₱{$formattedTotalValue}</span></div>

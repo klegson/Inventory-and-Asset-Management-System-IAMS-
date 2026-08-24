@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Login - AMS Inventory</title>
+    <title>Login - AIMS Inventory</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -109,9 +109,9 @@
             </div>
 
             <div class="text-overlay">
-                <h1 class="fw-bold display-5 mb-3 text-white">Asset & Supply Management</h1>
+                <h1 class="fw-bold display-5 mb-3 text-white">Asset & Inventory Management System</h1>
                 <p class="fs-5 text-light opacity-75 w-75">
-                    Centralized platform for tracking inventory, managing deployments, and generating real-time stock insights.
+                    A centralized platform for tracking inventory and managing assets efficiently, ensuring transparency and accountability in the system.
                 </p>
             </div>
         </div>
@@ -122,7 +122,7 @@
                 <div class="text-center mb-4">
                     <img src="{{ asset('assets/images/DepEdseal.png') }}" alt="DepEd Logo" style="width: 75px; height: 75px;" class="mb-3">
                     <a href="{{ url('/') }}" class="text-decoration-none">
-                        <h4 class="fw-bold mb-0 text-theme">DepEd ROV AMS</h4>
+                        <h4 class="fw-bold mb-0 text-theme">DepEd ROV AIMS</h4>
                     </a>
                 </div>
 

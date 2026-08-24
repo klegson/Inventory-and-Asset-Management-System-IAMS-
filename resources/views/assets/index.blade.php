@@ -123,6 +123,14 @@
 
         .modal { z-index: 1060 !important; }
         .modal-backdrop { z-index: 1055 !important; }
+
+        /* Forms wrap modal-body/modal-footer, so they must be flex children too or modal-dialog-scrollable can't compute a scrollable height */
+        .modal-dialog-scrollable .modal-content > form {
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            overflow: hidden;
+        }
         
         @media (max-width: 768px) { 
             body { overflow: visible; height: auto; }

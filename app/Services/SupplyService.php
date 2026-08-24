@@ -31,6 +31,23 @@ class SupplyService
             });
         }
 
+        // Brand/Model distinguish items that otherwise share the same article/description
+        if (!empty($data['brand'])) {
+            $query->where('brand', trim($data['brand']));
+        } else {
+            $query->where(function($q) {
+                $q->whereNull('brand')->orWhere('brand', '');
+            });
+        }
+
+        if (!empty($data['model'])) {
+            $query->where('model', trim($data['model']));
+        } else {
+            $query->where(function($q) {
+                $q->whereNull('model')->orWhere('model', '');
+            });
+        }
+
         return $query->first();
     }
 

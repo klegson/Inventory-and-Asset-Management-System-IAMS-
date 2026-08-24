@@ -31,7 +31,7 @@ return new class extends Migration
                 $table->string('username')->nullable()->after('contact_number');
             }
             if (!Schema::hasColumn('users', 'role')) {
-                $table->string('role')->default('frontuser')->after('username');
+                $table->string('role')->default('staff')->after('username');
             }
             if (!Schema::hasColumn('users', 'status')) {
                 $table->string('status')->default('Active')->after('role');

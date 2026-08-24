@@ -17,6 +17,8 @@ class Supply extends Model
         'barcode_id', 
         'article', 
         'description', 
+        'brand',
+        'model',
         'supplier', 
         'unit_measure', 
         'unit_value', 
