@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Supply;
 use App\Models\Transaction;
 use App\Models\ActivityLog;
+use App\Models\PurchaseOrderItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -276,6 +277,130 @@ class SupplyService
 
             return $transaction;
         });
+    }
+
+    /**
+     * Receive a supply delivery and update its moving weighted-average cost.
+     */
+    public function receiveSupply(Supply $supply, array $data): Transaction
+    {
+        $quantity = $data['quantity'] ?? null;
+        $unitPrice = $data['unit_price'] ?? null;
+
+        if (filter_var($quantity, FILTER_VALIDATE_INT) === false || (int) $quantity < 1) {
+            throw new \InvalidArgumentException('Received quantity must be a positive whole number.');
+        }
+
+        if (!is_numeric($unitPrice) || (float) $unitPrice < 0) {
+            throw new \InvalidArgumentException('Received unit price must be zero or greater.');
+        }
+
+        $quantity = (int) $quantity;
+        $unitPrice = (float) $unitPrice;
+
+        return DB::transaction(function () use ($supply, $data, $quantity, $unitPrice): Transaction {
+            $lockedSupply = Supply::whereKey($supply->id)->lockForUpdate()->firstOrFail();
+            $existingQuantity = max(0, (int) $lockedSupply->quantity);
+            $existingValue = $existingQuantity * (float) $lockedSupply->unit_value;
+            $newUnitValue = ($existingValue + ($quantity * $unitPrice)) / ($existingQuantity + $quantity);
+
+            $lockedSupply->update([
+                'quantity' => $existingQuantity + $quantity,
+                'unit_value' => round($newUnitValue, 2),
+                'supplier' => $data['supplier'] ?? $lockedSupply->supplier,
+                'status' => 'Available',
+            ]);
+
+            $transaction = Transaction::create([
+                'item_id' => $lockedSupply->id,
+                'item_type' => 'supplies',
+                'transaction_type' => 'IN',
+                'quantity' => $quantity,
+                'supplier' => $data['supplier'] ?? $lockedSupply->supplier,
+                'po_number' => $data['po_number'] ?? null,
+                'delivery_receipt' => $data['delivery_receipt'] ?? null,
+                'office' => $data['office'] ?? null,
+                'unit_price' => $unitPrice,
+                'receipt_status' => $data['receipt_status'] ?? 'Complete',
+                'transaction_date' => $data['transaction_date'] ?? date('Y-m-d'),
+                'remarks' => $data['remarks'] ?? 'Supply delivery received',
+                'date_time' => now(),
+            ]);
+
+            ActivityLog::create([
+                'user_id' => Auth::id(),
+                'action' => 'Received',
+                'description' => "Received supply: {$lockedSupply->article} ({$quantity} units)",
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+            ]);
+
+            return $transaction;
+        });
+    }
+
+    /**
+     * Import a delivered supply PO item into its matching stock card once.
+     */
+    public function syncDeliveredPurchaseOrderItem(PurchaseOrderItem $item): ?Transaction
+    {
+        if (!$item->is_delivered || $item->inventory_synced) {
+            return null;
+        }
+
+        $purchaseOrder = $item->purchaseOrder;
+        if (!$purchaseOrder || $purchaseOrder->po_type === 'Asset') {
+            return null;
+        }
+
+        $supplier = trim((string) $purchaseOrder->supplier_name);
+        $description = trim((string) $item->description);
+        $unit = trim((string) $item->unit);
+
+        $supply = Supply::where('description', $description)
+            ->where('unit_measure', $unit)
+            ->first();
+
+        $transaction = $supply
+            ? $this->receiveSupply($supply, [
+                'quantity' => $item->qty,
+                'unit_price' => $item->unit_cost,
+                'supplier' => $supplier,
+                'po_number' => $purchaseOrder->po_no,
+                'office' => $purchaseOrder->place_of_delivery,
+                'receipt_status' => 'Complete',
+                'remarks' => "Received from PO {$purchaseOrder->po_no}",
+            ])
+            : $this->create([
+                'article' => $description,
+                'description' => $description,
+                'unit_measure' => $unit,
+                'unit_value' => $item->unit_cost,
+                'supplier' => $supplier ?: null,
+                'quantity' => $item->qty,
+                'status' => 'Available',
+            ]);
+
+        if (!$supply) {
+            $transaction = Transaction::where('item_id', $transaction->id)
+                ->where('item_type', 'supplies')
+                ->where('transaction_type', 'IN')
+                ->latest('id')
+                ->first();
+
+            if ($transaction) {
+                $transaction->update([
+                    'po_number' => $purchaseOrder->po_no,
+                    'office' => $purchaseOrder->place_of_delivery,
+                    'receipt_status' => 'Complete',
+                    'remarks' => "Received from PO {$purchaseOrder->po_no}",
+                ]);
+            }
+        }
+
+        $item->forceFill(['inventory_synced' => true])->save();
+
+        return $transaction instanceof Transaction ? $transaction : null;
     }
 
     /**

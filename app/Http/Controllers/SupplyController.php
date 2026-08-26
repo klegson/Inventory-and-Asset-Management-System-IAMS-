@@ -11,6 +11,7 @@ use App\Services\SupplyService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Carbon\Carbon;
 
 class SupplyController extends Controller
 {
@@ -242,6 +243,40 @@ class SupplyController extends Controller
 HTML;
     }
 
+    public function stockCard($id)
+    {
+        $supply = Supply::findOrFail($id);
+        $transactions = Transaction::where('item_id', $supply->id)
+            ->where('item_type', 'supplies')
+            ->orderBy('transaction_date')
+            ->orderBy('id')
+            ->get();
+
+        $balance = 0;
+        $rows = $transactions->map(function (Transaction $transaction) use (&$balance) {
+            $type = strtoupper((string) $transaction->transaction_type);
+            $isReceipt = in_array($type, ['IN', 'ADDED', 'RETURNED'], true);
+            $receiptQuantity = $isReceipt ? (int) $transaction->quantity : null;
+            $issueQuantity = !$isReceipt ? (int) $transaction->quantity : null;
+            $balance += $isReceipt ? (int) $transaction->quantity : -(int) $transaction->quantity;
+
+            return [
+                'date' => $transaction->transaction_date ?: ($transaction->date_time ? Carbon::parse($transaction->date_time)->toDateString() : null),
+                'reference' => $transaction->po_number ?: $transaction->delivery_receipt ?: $transaction->remarks,
+                'receipt_quantity' => $receiptQuantity,
+                'issue_quantity' => $issueQuantity,
+                'office' => $transaction->office ?: ($isReceipt ? $transaction->supplier : 'Issuance'),
+                'balance' => $balance,
+                'days_to_consume' => null,
+                'supplier' => $transaction->supplier,
+                'unit_price' => $transaction->unit_price,
+                'remarks' => $transaction->remarks,
+            ];
+        });
+
+        return view('supplies.stock-card', compact('supply', 'rows'));
+    }
+
     public function update(Request $request, $id)
     {
         $supply = Supply::findOrFail($id);
@@ -319,6 +354,29 @@ HTML;
                 : 'error_transaction';
 
             return redirect('/supplies')->with('msg', $message);
+        }
+
+        return redirect('/supplies')->with('msg', 'success');
+    }
+
+    public function receive(Request $request, SupplyService $supplyService, $id)
+    {
+        $supply = Supply::findOrFail($id);
+
+        try {
+            $supplyService->receiveSupply($supply, [
+                'quantity' => $request->quantity,
+                'unit_price' => $request->unit_price,
+                'supplier' => $request->supplier,
+                'po_number' => $request->po_number,
+                'delivery_receipt' => $request->delivery_receipt,
+                'office' => $request->office,
+                'receipt_status' => $request->receipt_status,
+                'transaction_date' => $request->transaction_date,
+                'remarks' => $request->remarks,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            return redirect('/supplies')->with('msg', 'error_transaction');
         }
 
         return redirect('/supplies')->with('msg', 'success');

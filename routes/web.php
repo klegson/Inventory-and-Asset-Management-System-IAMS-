@@ -87,6 +87,8 @@ Route::middleware('auth')->group(function () {
     Route::put('/supplies/{id}', [SupplyController::class, 'update']);
     Route::delete('/supplies/{id}', [SupplyController::class, 'destroy']);
     Route::post('/supplies/{id}/transaction', [SupplyController::class, 'stockTransaction']);
+    Route::post('/supplies/{id}/receive', [SupplyController::class, 'receive']);
+    Route::get('/supplies/{id}/stock-card', [SupplyController::class, 'stockCard']);
     Route::get('/supplies/{id}/details', [SupplyController::class, 'details']);
 
     // Barcodes

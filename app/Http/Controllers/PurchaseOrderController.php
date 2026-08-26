@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Auth;
+use App\Services\SupplyService;
 
 class PurchaseOrderController extends Controller
 {
@@ -44,7 +45,7 @@ class PurchaseOrderController extends Controller
         return view('po.index', compact('purchaseOrders'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, SupplyService $supplyService)
     {
         if (!Schema::hasColumn('purchase_orders', 'po_type')) {
             Schema::table('purchase_orders', function (Blueprint $table) {
@@ -91,15 +92,17 @@ class PurchaseOrderController extends Controller
             ]);
 
             foreach ($request->items as $item) {
-                PurchaseOrderItem::create([
+                $poItem = PurchaseOrderItem::create([
                     'purchase_order_id' => $po->id,
                     'unit' => $item['unit'],
                     'description' => $item['description'],
                     'qty' => $item['qty'],
                     'unit_cost' => $item['cost'],
                     'amount' => $item['qty'] * $item['cost'],
-                    'is_delivered' => (!empty($item['is_delivered']) && ($item['is_delivered'] === true || $item['is_delivered'] === 'true'))
+                    'is_delivered' => (!empty($item['is_delivered']) && ($item['is_delivered'] === true || $item['is_delivered'] === 'true')),
                 ]);
+
+                $supplyService->syncDeliveredPurchaseOrderItem($poItem);
             }
 
             ActivityLog::create([
@@ -124,7 +127,7 @@ class PurchaseOrderController extends Controller
         return response()->json($po);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, $id, SupplyService $supplyService)
     {
         if (!Schema::hasColumn('purchase_orders', 'po_type')) {
             Schema::table('purchase_orders', function (Blueprint $table) {
@@ -174,15 +177,17 @@ class PurchaseOrderController extends Controller
             $po->items()->delete();
 
             foreach ($request->items as $item) {
-                PurchaseOrderItem::create([
+                $poItem = PurchaseOrderItem::create([
                     'purchase_order_id' => $po->id,
                     'unit' => $item['unit'],
                     'description' => $item['description'],
                     'qty' => $item['qty'],
                     'unit_cost' => $item['cost'],
                     'amount' => $item['qty'] * $item['cost'],
-                    'is_delivered' => (!empty($item['is_delivered']) && ($item['is_delivered'] === true || $item['is_delivered'] === 'true'))
+                    'is_delivered' => (!empty($item['is_delivered']) && ($item['is_delivered'] === true || $item['is_delivered'] === 'true')),
                 ]);
+
+                $supplyService->syncDeliveredPurchaseOrderItem($poItem);
             }
 
             ActivityLog::create([

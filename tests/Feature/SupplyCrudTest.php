@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use App\Models\Supply;
+use App\Models\Transaction;
 use App\Models\User;
 
 class SupplyCrudTest extends TestCase
@@ -64,6 +65,52 @@ class SupplyCrudTest extends TestCase
         $supply->refresh();
         $this->assertEquals(30, $supply->quantity);
 
+        $stockCard = $this->get('/supplies/'.$supply->id.'/stock-card');
+        $stockCard->assertOk()
+            ->assertSee('STOCK CARD')
+            ->assertSee('Receipt')
+            ->assertSee('Issuance')
+            ->assertSee('Balance')
+            ->assertSee('Updated Supply');
+
+        // Receive a partial delivery and apply weighted-average pricing.
+        $receive = $this->post('/supplies/'.$supply->id.'/receive', [
+            'quantity' => 50,
+            'unit_price' => 40,
+            'supplier' => 'New Supplier',
+            'po_number' => 'PO-2026-001',
+            'delivery_receipt' => 'DR-2026-001',
+            'office' => 'Records Office',
+            'receipt_status' => 'Partial',
+            'transaction_date' => date('Y-m-d'),
+        ]);
+        $receive->assertStatus(302);
+        $supply->refresh();
+        $this->assertEquals(80, $supply->quantity);
+        $this->assertEquals(29.50, (float) $supply->unit_value);
+        $this->assertDatabaseHas('transactions', [
+            'item_id' => $supply->id,
+            'transaction_type' => 'IN',
+            'quantity' => 50,
+            'po_number' => 'PO-2026-001',
+            'delivery_receipt' => 'DR-2026-001',
+            'office' => 'Records Office',
+            'receipt_status' => 'Partial',
+        ]);
+
+        $sameTraits = $this->post('/supplies/'.$supply->id.'/receive', [
+            'quantity' => 10,
+            'unit_price' => 35,
+            'supplier' => 'Another Supplier',
+            'po_number' => 'PO-2026-002',
+            'receipt_status' => 'Complete',
+        ]);
+        $sameTraits->assertStatus(302);
+        $supply->refresh();
+        $this->assertEquals(90, $supply->quantity);
+        $this->assertEquals(30.11, (float) $supply->unit_value);
+        $this->assertSame(1, Supply::where('description', 'Updated')->where('unit_measure', 'pcs')->count());
+
         // Stock transaction OUT
         $out = $this->post('/supplies/'.$supply->id.'/transaction', [
             'qty' => 10,
@@ -74,7 +121,7 @@ class SupplyCrudTest extends TestCase
         ]);
         $out->assertStatus(302);
         $supply->refresh();
-        $this->assertEquals(20, $supply->quantity);
+        $this->assertEquals(80, $supply->quantity);
 
         // Delete
         $del = $this->delete('/supplies/'.$supply->id);

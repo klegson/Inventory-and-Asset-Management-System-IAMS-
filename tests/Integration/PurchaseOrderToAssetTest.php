@@ -8,6 +8,7 @@ use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
 use App\Models\Asset;
 use App\Models\User;
+use App\Models\Supply;
 
 class PurchaseOrderToAssetTest extends TestCase
 {
@@ -55,5 +56,50 @@ class PurchaseOrderToAssetTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('assets', ['barcode_id' => 'PO-100-1']);
+    }
+
+    public function test_delivered_supply_po_items_are_added_to_inventory()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+
+        $response = $this->postJson('/po', [
+            'po_type' => 'Supply',
+            'entity_name' => 'Test Agency',
+            'po_no' => 'PO-SUP-100',
+            'supplier_name' => 'Supply Supplier',
+            'supplier_address' => '123 Test Street',
+            'po_date' => date('Y-m-d'),
+            'procurement_mode' => 'Direct',
+            'auth_official' => 'Authorized Official',
+            'auth_official_designation' => 'Agency Head',
+            'chief_accountant' => 'Chief Accountant',
+            'chief_accountant_designation' => 'Accountant',
+            'total_amount' => 200,
+            'items' => [[
+                'unit' => 'Piece(s)',
+                'description' => 'Rubber Band Small',
+                'qty' => 10,
+                'cost' => 20,
+                'is_delivered' => true,
+            ]],
+        ]);
+
+        $response->assertOk()->assertJson(['success' => true]);
+        $this->assertDatabaseHas('supplies', [
+            'description' => 'Rubber Band Small',
+            'unit_measure' => 'Piece(s)',
+            'quantity' => 10,
+            'unit_value' => 20,
+        ]);
+        $this->assertDatabaseHas('purchase_order_items', [
+            'description' => 'Rubber Band Small',
+            'inventory_synced' => true,
+        ]);
+        $this->assertDatabaseHas('transactions', [
+            'po_number' => 'PO-SUP-100',
+            'quantity' => 10,
+            'supplier' => 'Supply Supplier',
+        ]);
     }
 }

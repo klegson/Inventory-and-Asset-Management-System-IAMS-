@@ -236,6 +236,9 @@
                                         <button class="btn btn-sm btn-light border text-primary view-btn" title="View" data-id="{{ $row->id }}">
                                             <i class="fas fa-eye"></i>
                                         </button>
+                                        <a class="btn btn-sm btn-light border text-dark" title="Stock Card" href="{{ url('/supplies/'.$row->id.'/stock-card') }}" target="_blank">
+                                            <i class="fas fa-clipboard-list"></i>
+                                        </a>
                                         
                                         <button class="btn btn-sm btn-light border text-success edit-btn" title="Edit"
                                                 data-bs-toggle="modal" 

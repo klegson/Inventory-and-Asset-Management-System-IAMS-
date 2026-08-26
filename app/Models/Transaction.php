@@ -17,8 +17,17 @@ class Transaction extends Model
         'transaction_type',
         'quantity',
         'supplier',
+        'po_number',
+        'delivery_receipt',
+        'office',
+        'unit_price',
+        'receipt_status',
         'transaction_date',
         'remarks',
         'date_time'
+    ];
+
+    protected $casts = [
+        'unit_price' => 'decimal:2',
     ];
 }
