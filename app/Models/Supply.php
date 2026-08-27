@@ -19,6 +19,7 @@ class Supply extends Model
         'description', 
         'brand',
         'model',
+        'classification',
         'supplier', 
         'unit_measure', 
         'unit_value', 

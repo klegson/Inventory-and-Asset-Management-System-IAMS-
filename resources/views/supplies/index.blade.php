@@ -210,7 +210,12 @@
                                 $totalInventory = max((int)$row->total_input, (int)$row->quantity);
                             @endphp
                             <tr class="clickable-row" data-id="{{ $row->id }}">
-                                <td class="fw-bold text-nowrap">{{ $row->article }}</td>
+                                <td class="fw-bold text-nowrap">
+                                    {{ $row->article }}
+                                    @if($row->classification)
+                                        <small class="d-block text-muted fw-normal">{{ $row->classification }}</small>
+                                    @endif
+                                </td>
                                 <td class="text-nowrap">
                                     @if($row->brand || $row->model)
                                         {{ $row->brand }}{{ $row->brand && $row->model ? ' / ' : '' }}{{ $row->model }}
@@ -248,6 +253,7 @@
                                                 data-desc="{{ $row->description }}"
                                                 data-brand="{{ $row->brand }}"
                                                 data-model="{{ $row->model }}"
+                                                data-classification="{{ $row->classification }}"
                                                 data-supplier="{{ $row->supplier }}"
                                                 data-unit="{{ $row->unit_measure }}"
                                                 data-value="{{ $row->unit_value }}"
@@ -359,14 +365,30 @@
 
                                 <div class="row g-3">
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Article (Name) <span class="text-danger">*</span></label>
-                                        <input type="text" name="article" id="add_article" class="form-control" required placeholder="e.g. Bond Paper">
+                                        <label class="form-label fw-bold">Supply Section <span class="text-danger">*</span></label>
+                                        <select id="add_article_select" class="form-select" onchange="handleSectionChange(this, 'add')">
+                                            <option value="">Select existing section...</option>
+                                            @foreach($sections ?? [] as $sectionName => $classifications)
+                                                <option value="{{ $sectionName }}">{{ $sectionName }}</option>
+                                            @endforeach
+                                            <option value="__new__">+ Add New Section...</option>
+                                        </select>
+                                        <input type="text" name="article" id="add_article" class="form-control mt-2 d-none" placeholder="e.g. Bond Paper">
+                                        <small class="text-muted d-block mt-1">The general item group, e.g. "Bond Paper".</small>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Classification</label>
+                                        <select id="add_classification_select" class="form-select" onchange="handleClassificationChange(this, 'add')" disabled>
+                                            <option value="">Select a section first...</option>
+                                        </select>
+                                        <input type="text" name="classification" id="add_classification" class="form-control mt-2 d-none" placeholder="e.g. Size: A4">
+                                        <small class="text-muted d-block mt-1">The specific kind/size within the section, e.g. "Size: A4".</small>
+                                    </div>
+
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Supplier</label>
                                         <input type="text" name="supplier" id="add_supplier" class="form-control" placeholder="e.g. Pandayan">
                                     </div>
-
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Brand</label>
                                         <input type="text" name="brand" id="add_brand" class="form-control" placeholder="e.g. HP, Epson">
@@ -485,8 +507,22 @@
                                     </div>
                                     
                                     <div class="col-md-6">
-                                        <label class="form-label fw-bold">Article (Name) <span class="text-danger">*</span></label>
-                                        <input type="text" name="article" id="edit_article" class="form-control" required>
+                                        <label class="form-label fw-bold">Supply Section <span class="text-danger">*</span></label>
+                                        <select id="edit_article_select" class="form-select" onchange="handleSectionChange(this, 'edit')">
+                                            <option value="">Select existing section...</option>
+                                            @foreach($sections ?? [] as $sectionName => $classifications)
+                                                <option value="{{ $sectionName }}">{{ $sectionName }}</option>
+                                            @endforeach
+                                            <option value="__new__">+ Add New Section...</option>
+                                        </select>
+                                        <input type="text" name="article" id="edit_article" class="form-control mt-2 d-none" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-bold">Classification</label>
+                                        <select id="edit_classification_select" class="form-select" onchange="handleClassificationChange(this, 'edit')" disabled>
+                                            <option value="">Select a section first...</option>
+                                        </select>
+                                        <input type="text" name="classification" id="edit_classification" class="form-control mt-2 d-none" placeholder="e.g. Size: A4">
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label fw-bold">Supplier</label>
@@ -615,6 +651,71 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        // --- MULTI-LEVEL SUPPLY SECTION / CLASSIFICATION DROPDOWN ---
+        const supplySections = @json($sections ?? []);
+
+        function populateClassifications(prefix, sectionName) {
+            const select = document.getElementById(prefix + '_classification_select');
+            const hiddenInput = document.getElementById(prefix + '_classification');
+
+            if (!sectionName || sectionName === '__new__') {
+                select.disabled = true;
+                select.innerHTML = '<option value="">Select a section first...</option>';
+                hiddenInput.classList.add('d-none');
+                hiddenInput.value = '';
+                return;
+            }
+
+            const classifications = supplySections[sectionName] || [];
+            let html = '<option value="">General / No specific classification</option>';
+            classifications.forEach(function (classification) {
+                html += `<option value="${classification}">${classification}</option>`;
+            });
+            html += '<option value="__new__">+ Add New Classification...</option>';
+
+            select.disabled = false;
+            select.innerHTML = html;
+            hiddenInput.classList.add('d-none');
+            hiddenInput.value = '';
+        }
+
+        function handleSectionChange(select, prefix) {
+            const value = select.value;
+            const textInput = document.getElementById(prefix + '_article');
+
+            if (value === '__new__') {
+                textInput.classList.remove('d-none');
+                textInput.value = '';
+                textInput.focus();
+                populateClassifications(prefix, null);
+            } else {
+                textInput.classList.add('d-none');
+                textInput.value = value;
+                populateClassifications(prefix, value);
+            }
+        }
+
+        function handleClassificationChange(select, prefix) {
+            const value = select.value;
+            const textInput = document.getElementById(prefix + '_classification');
+
+            if (value === '__new__') {
+                textInput.classList.remove('d-none');
+                textInput.value = '';
+                textInput.focus();
+            } else {
+                textInput.classList.add('d-none');
+                textInput.value = value;
+            }
+        }
+
+        // Reset the multi-level dropdown whenever the Add Supply modal is opened
+        document.getElementById('addSupplyModal').addEventListener('show.bs.modal', function () {
+            const sectionSelect = document.getElementById('add_article_select');
+            sectionSelect.value = '';
+            handleSectionChange(sectionSelect, 'add');
+        });
+
         // --- DUPLICATE ITEM CHECK INTERCEPTOR ---
         document.getElementById('addSupplyForm').addEventListener('submit', function(e) {
             if (this.querySelector('input[name="force_save"]')) return; 
@@ -723,7 +824,8 @@
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             
             if (!selectedOption.value) {
-                document.getElementById('add_article').value = '';
+                document.getElementById('add_article_select').value = '';
+                handleSectionChange(document.getElementById('add_article_select'), 'add');
                 document.getElementById('add_desc').value = '';
                 document.getElementById('add_supplier').value = '';
                 document.getElementById('add_unit').selectedIndex = 0;
@@ -732,7 +834,15 @@
                 return;
             }
 
-            document.getElementById('add_article').value = selectedOption.getAttribute('data-desc').split(' ')[0]; 
+            const articleSelect = document.getElementById('add_article_select');
+            const articleName = selectedOption.getAttribute('data-desc').split(' ')[0];
+            const matchingOption = Array.from(articleSelect.options).find(opt => opt.value === articleName);
+            articleSelect.value = matchingOption ? articleName : '__new__';
+            handleSectionChange(articleSelect, 'add');
+            if (!matchingOption) {
+                document.getElementById('add_article').value = articleName;
+            }
+
             document.getElementById('add_desc').value = selectedOption.getAttribute('data-desc');
             document.getElementById('add_supplier').value = selectedOption.getAttribute('data-supplier');
             
@@ -796,7 +906,28 @@
                 const id = this.getAttribute('data-id');
                 document.getElementById('editForm').action = `/supplies/${id}`;
                 
-                document.getElementById('edit_article').value = this.getAttribute('data-article');
+                const editArticleSelect = document.getElementById('edit_article_select');
+                const articleValue = this.getAttribute('data-article');
+                const articleOptionExists = Array.from(editArticleSelect.options).some(opt => opt.value === articleValue);
+                editArticleSelect.value = articleOptionExists ? articleValue : '__new__';
+                handleSectionChange(editArticleSelect, 'edit');
+                document.getElementById('edit_article').value = articleValue;
+                if (!articleOptionExists) {
+                    document.getElementById('edit_article').classList.remove('d-none');
+                }
+
+                const editClassificationSelect = document.getElementById('edit_classification_select');
+                const classificationValue = this.getAttribute('data-classification');
+                const classificationOptionExists = Array.from(editClassificationSelect.options).some(opt => opt.value === classificationValue);
+                if (classificationValue) {
+                    editClassificationSelect.value = classificationOptionExists ? classificationValue : '__new__';
+                    handleClassificationChange(editClassificationSelect, 'edit');
+                    if (!classificationOptionExists) {
+                        document.getElementById('edit_classification').classList.remove('d-none');
+                    }
+                }
+                document.getElementById('edit_classification').value = classificationValue;
+
                 document.getElementById('edit_desc').value = this.getAttribute('data-desc');
                 document.getElementById('edit_brand').value = this.getAttribute('data-brand');
                 document.getElementById('edit_model').value = this.getAttribute('data-model');

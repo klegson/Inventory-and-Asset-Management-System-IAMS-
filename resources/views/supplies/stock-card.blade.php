@@ -12,7 +12,7 @@
         button, .back { border: 1px solid #475569; background: #fff; color: #172033; padding: 8px 14px; text-decoration: none; cursor: pointer; }
         .title { text-align: center; border: 2px solid #111; border-bottom: 0; padding: 14px 8px 10px; }
         .title h1 { margin: 0; font-size: 25px; letter-spacing: .08em; }
-        .title p { margin: 5px 0 0; font-size: 13px; }
+        .title p { margin: 5px 0 0; font-size: 13px; font-weight: 800; }
         .meta { display: grid; grid-template-columns: 1fr 1fr 1fr; border: 2px solid #111; border-bottom: 0; }
         .meta div { min-height: 42px; padding: 7px 10px; border-right: 1px solid #111; }
         .meta div:last-child { border-right: 0; }
@@ -52,7 +52,7 @@
 
     <header class="title">
         <h1>STOCK CARD</h1>
-        <p>Department of Education | Agency Inventory Record</p>
+        <p>Department of Education, Region V <br>Agency</p>
     </header>
 
     <section class="meta">
@@ -96,7 +96,7 @@
             @empty
                 <tr><td colspan="8" class="center muted">No stock movements recorded.</td></tr>
             @endforelse
-            @for($i = $rows->count(); $i < 12; $i++)
+            @for($i = $rows->count(); $i < 30; $i++)
                 <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
             @endfor
         </tbody>

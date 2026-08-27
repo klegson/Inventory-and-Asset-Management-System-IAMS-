@@ -49,6 +49,14 @@ class SupplyService
             });
         }
 
+        if (!empty($data['classification'])) {
+            $query->where('classification', trim($data['classification']));
+        } else {
+            $query->where(function($q) {
+                $q->whereNull('classification')->orWhere('classification', '');
+            });
+        }
+
         return $query->first();
     }
 
@@ -89,6 +97,9 @@ class SupplyService
             $supply = Supply::create([
                 'article' => $data['article'],
                 'description' => $data['description'],
+                'brand' => $data['brand'] ?? null,
+                'model' => $data['model'] ?? null,
+                'classification' => $data['classification'] ?? null,
                 'unit_measure' => $data['unit_measure'],
                 'unit_value' => $data['unit_value'] ?? 0,
                 'supplier' => $data['supplier'] ?? null,
@@ -159,6 +170,9 @@ class SupplyService
             $supply->update([
                 'article' => $data['article'] ?? $supply->article,
                 'description' => $data['description'] ?? $supply->description,
+                'brand' => $data['brand'] ?? $supply->brand,
+                'model' => $data['model'] ?? $supply->model,
+                'classification' => $data['classification'] ?? $supply->classification,
                 'unit_measure' => $data['unit_measure'] ?? $supply->unit_measure,
                 'unit_value' => $data['unit_value'] ?? $supply->unit_value,
                 'supplier' => $data['supplier'] ?? $supply->supplier,

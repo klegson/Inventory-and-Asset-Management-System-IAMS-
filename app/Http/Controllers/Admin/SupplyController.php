@@ -50,6 +50,15 @@ class SupplyController extends Controller
 
         $brandOptions = Supply::whereNotNull('brand')->where('brand', '!=', '')->distinct()->orderBy('brand')->pluck('brand');
 
+        // Sections (article) mapped to their existing classifications, for the multi-level supply dropdown
+        $sections = Supply::whereNotNull('article')->where('article', '!=', '')
+            ->orderBy('article')
+            ->get(['article', 'classification'])
+            ->groupBy('article')
+            ->map(function ($group) {
+                return $group->pluck('classification')->filter()->unique()->sort()->values();
+            });
+
         $deliveredPoItems = collect();
         if (class_exists(PurchaseOrderItem::class)) {
             $existingSupplyDescriptions = Supply::pluck('description')->map(function($desc) {
@@ -68,7 +77,7 @@ class SupplyController extends Controller
             });
         }
         
-        return view('admin.supplies.index', compact('supplies', 'perPage', 'deliveredPoItems', 'brandOptions'));
+        return view('admin.supplies.index', compact('supplies', 'perPage', 'deliveredPoItems', 'brandOptions', 'sections'));
     }
 
     public function store(Request $request)
@@ -105,6 +114,14 @@ class SupplyController extends Controller
                 });
             }
 
+            if ($request->filled('classification')) {
+                $existing->where('classification', trim($request->classification));
+            } else {
+                $existing->where(function($q) {
+                    $q->whereNull('classification')->orWhere('classification', '');
+                });
+            }
+
             $duplicate = $existing->first();
 
             if ($duplicate) {
@@ -128,6 +145,7 @@ class SupplyController extends Controller
             'description' => $request->description,
             'brand' => $request->brand,
             'model' => $request->model,
+            'classification' => $request->classification,
             'unit_measure' => $request->unit_measure,
             'unit_value' => $request->unit_value,
             'quantity' => $request->initial_quantity,
@@ -178,6 +196,7 @@ class SupplyController extends Controller
             'description' => $request->description,
             'brand' => $request->brand,
             'model' => $request->model,
+            'classification' => $request->classification,
             'unit_measure' => $request->unit_measure,
             'unit_value' => $request->unit_value,
             'quantity' => $request->quantity,
