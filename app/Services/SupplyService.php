@@ -257,7 +257,10 @@ class SupplyService
 
         $quantity = (int) $quantity;
 
-        return DB::transaction(function () use ($supply, $data, $quantity, $transactionType): Transaction {
+        $unitPrice = $data['unit_price'] ?? null;
+        $hasUnitPrice = $transactionType === 'IN' && is_numeric($unitPrice) && (float) $unitPrice >= 0;
+
+        return DB::transaction(function () use ($supply, $data, $quantity, $transactionType, $unitPrice, $hasUnitPrice): Transaction {
             $lockedSupply = Supply::whereKey($supply->id)->lockForUpdate()->firstOrFail();
 
             if ($transactionType === 'OUT' && $lockedSupply->quantity < $quantity) {
@@ -268,7 +271,17 @@ class SupplyService
                 ? $lockedSupply->quantity - $quantity
                 : $lockedSupply->quantity + $quantity;
 
-            $lockedSupply->update(['quantity' => $newQuantity]);
+            $updateData = ['quantity' => $newQuantity];
+
+            // Weighted-average unit value: Price = (Σ quantity * price) / (Σ quantity)
+            if ($hasUnitPrice) {
+                $existingQuantity = max(0, (int) $lockedSupply->quantity);
+                $existingValue = $existingQuantity * (float) $lockedSupply->unit_value;
+                $newUnitValue = ($existingValue + ($quantity * (float) $unitPrice)) / ($existingQuantity + $quantity);
+                $updateData['unit_value'] = round($newUnitValue, 2);
+            }
+
+            $lockedSupply->update($updateData);
 
             $transaction = Transaction::create([
                 'item_id' => $lockedSupply->id,
@@ -276,6 +289,7 @@ class SupplyService
                 'transaction_type' => $transactionType,
                 'quantity' => $quantity,
                 'supplier' => $data['supplier'] ?? $lockedSupply->supplier,
+                'unit_price' => $hasUnitPrice ? (float) $unitPrice : null,
                 'transaction_date' => $data['transaction_date'] ?? date('Y-m-d'),
                 'remarks' => $data['remarks'] ?? '',
                 'date_time' => now()

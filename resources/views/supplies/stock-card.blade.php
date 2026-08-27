@@ -60,7 +60,6 @@
         <div><strong>Description</strong><span>{{ $supply->description }}</span></div>
         <div><strong>Stock No.</strong><span>{{ $supply->barcode_id ?: 'N/A' }}</span></div>
         <div><strong>Unit of Measure</strong><span>{{ $supply->unit_measure }}</span></div>
-        <div><strong>Current Stock</strong><span>{{ $supply->quantity }} {{ $supply->unit_measure }}</span></div>
         <div><strong>Re-order Point</strong><span>{{ $supply->low_stock_threshold }}</span></div>
     </section>
 

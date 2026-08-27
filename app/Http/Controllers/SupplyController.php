@@ -280,7 +280,7 @@ HTML;
 
             return [
                 'date' => $transaction->transaction_date ?: ($transaction->date_time ? Carbon::parse($transaction->date_time)->toDateString() : null),
-                'reference' => $transaction->po_number ?: $transaction->delivery_receipt ?: $transaction->remarks,
+                'reference' => $transaction->po_number,
                 'receipt_quantity' => $receiptQuantity,
                 'issue_quantity' => $issueQuantity,
                 'office' => $transaction->office ?: ($isReceipt ? $transaction->supplier : 'Issuance'),
@@ -291,6 +291,18 @@ HTML;
                 'remarks' => $transaction->remarks,
             ];
         });
+
+        // Align the running balance with the actual current stock so the last
+        // row's Balance Qty. reflects the supply's true on-hand quantity.
+        if ($rows->isNotEmpty()) {
+            $offset = (int) $supply->quantity - (int) $balance;
+            if ($offset !== 0) {
+                $rows = $rows->map(function (array $row) use ($offset) {
+                    $row['balance'] += $offset;
+                    return $row;
+                });
+            }
+        }
 
         return view('supplies.stock-card', compact('supply', 'rows'));
     }
@@ -364,6 +376,7 @@ HTML;
                 'type' => $request->transaction_type,
                 'quantity' => $request->qty,
                 'supplier' => $request->supplier,
+                'unit_price' => $request->unit_price,
                 'transaction_date' => $request->transaction_date,
                 'remarks' => $request->remarks,
             ]);

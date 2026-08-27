@@ -337,6 +337,7 @@ HTML;
                 'type' => $request->transaction_type,
                 'quantity' => $request->qty,
                 'supplier' => $request->supplier,
+                'unit_price' => $request->unit_price,
                 'transaction_date' => $request->transaction_date,
                 'remarks' => $request->remarks,
             ]);

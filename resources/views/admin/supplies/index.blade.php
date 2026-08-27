@@ -187,7 +187,6 @@
                                     $qtyColor = 'text-warning text-dark';
                                 }
 
-                                $totalInventory = max((int)$row->total_input, (int)$row->quantity);
                             @endphp
                             <tr class="clickable-row" data-id="{{ $row->id }}">
                                 <td class="fw-bold">
@@ -209,7 +208,6 @@
                                 <td class="text-center" style="min-width: 120px;">
                                     <div class="d-flex align-items-center justify-content-center gap-1">
                                         <span class="fw-bold fs-5 {{ $qtyColor }}">{{ $row->quantity }}</span>
-                                        <span class="text-muted small">/ {{ $totalInventory }}</span>
                                     </div>
                                     <div class="text-muted" style="font-size: 0.7rem;">({{ $row->unit_measure }})</div>
                                 </td>
@@ -733,6 +731,7 @@
                         if (result.isConfirmed) {
                             const qty = document.getElementById('add_qty').value;
                             const supplier = document.getElementById('add_supplier').value;
+                            const unitPrice = document.getElementById('add_val').value;
                             const csrf = document.querySelector('meta[name="csrf-token"]').content;
                             
                             const tempForm = document.createElement('form');
@@ -746,6 +745,7 @@
                                 <input type="hidden" name="transaction_type" value="IN">
                                 <input type="hidden" name="qty" value="${qty}">
                                 <input type="hidden" name="supplier" value="${supplier}">
+                                <input type="hidden" name="unit_price" value="${unitPrice}">
                                 <input type="hidden" name="transaction_date" value="${today}">
                                 <input type="hidden" name="remarks" value="Added from duplicate check">
                             `;
